@@ -1,5 +1,7 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
+use line_drawing::Bresenham;
+
 use std::convert::TryFrom;
 
 use crate::{state::State, tools::Tool};
@@ -12,7 +14,17 @@ pub struct Freehand {
 impl Tool for Freehand {
 	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
 		if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
-			self.points.push((x, y));
+			if let Some((old_x, old_y)) = self.points.last() {
+				for (x, y) in
+					Bresenham::new((*old_x as isize, *old_y as isize), (x as isize, y as isize))
+						.skip(1)
+				{
+					self.points.push((x as usize, y as usize));
+				}
+			}
+			else {
+				self.points.push((x, y));
+			}
 		}
 
 		// Finish tool when mouse releases
