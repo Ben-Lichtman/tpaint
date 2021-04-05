@@ -35,10 +35,12 @@ pub struct State {
 }
 
 impl State {
-	pub fn new(output_file: PathBuf) -> Self {
+	pub fn new(output_file: PathBuf, load: bool) -> Self {
 		let (x, y) = size().unwrap();
 		let mut buffer = Buffer::new(x, y);
-		buffer.add_file_block(&output_file);
+		if load {
+			buffer.add_file_block(&output_file);
+		}
 		Self {
 			should_exit: false,
 			should_clear: false,
