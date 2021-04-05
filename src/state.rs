@@ -92,7 +92,7 @@ impl State {
 			self.size_y - 4,
 		)?;
 
-		queue!(w, MoveToNextLine(1))?;
+		queue!(w, Clear(ClearType::UntilNewLine), MoveToNextLine(1))?;
 
 		self.bottom_scroll.render(
 			w,
@@ -107,9 +107,9 @@ impl State {
 		self.side_scroll.render(
 			w,
 			view_offset_y,
-			self.size_y - 3,
+			self.size_y - 4,
 			self.buffer.max_dimensions().1,
-			self.size_y - 3,
+			self.size_y - 4,
 		)?;
 
 		w.flush()?;
