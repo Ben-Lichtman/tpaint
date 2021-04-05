@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEventKind};
 
 use std::convert::TryFrom;
 
-use crate::{state::State, tools::Tool};
+use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Rectangle {
@@ -46,9 +46,25 @@ impl Tool for Rectangle {
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
-	fn render(&self) -> Vec<(usize, usize, char)> {
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> {
+		if self.started {
+			let (start_x, start_y) = self.start;
+			let (end_x, end_y) = self.end;
+			Some((
+				start_x.min(end_x),
+				start_x.max(end_x),
+				start_y.min(end_y),
+				start_y.max(end_y),
+			))
+		}
+		else {
+			None
+		}
+	}
+
+	fn render(&self, buffer: &mut Buffer) {
 		if !self.started {
-			return Vec::new();
+			return;
 		}
 
 		let min_x = self.start.0.min(self.end.0);
@@ -65,7 +81,7 @@ impl Tool for Rectangle {
 			.chain(left)
 			.chain(right)
 			.map(|(x, y)| (x, y, '█'))
-			.collect::<Vec<_>>()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 
 	fn render_bounded(
@@ -74,9 +90,10 @@ impl Tool for Rectangle {
 		max_x: usize,
 		min_y: usize,
 		max_y: usize,
-	) -> Vec<(usize, usize, char)> {
+		buffer: &mut Buffer,
+	) {
 		if !self.started {
-			return Vec::new();
+			return;
 		}
 
 		let rect_min_x = self.start.0.min(self.end.0);
@@ -94,6 +111,6 @@ impl Tool for Rectangle {
 			.chain(right)
 			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.map(|(x, y)| (x, y, '█'))
-			.collect::<Vec<_>>()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 }

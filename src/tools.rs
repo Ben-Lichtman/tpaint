@@ -8,14 +8,16 @@ mod text;
 
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use crate::state::State;
+use crate::{buffer::Buffer, state::State};
 
 pub trait Tool {
 	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State);
 
 	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State);
 
-	fn render(&self) -> Vec<(usize, usize, char)>;
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)>;
+
+	fn render(&self, buffer: &mut Buffer);
 
 	fn render_bounded(
 		&self,
@@ -23,7 +25,8 @@ pub trait Tool {
 		max_x: usize,
 		min_y: usize,
 		max_y: usize,
-	) -> Vec<(usize, usize, char)>;
+		buffer: &mut Buffer,
+	);
 }
 
 #[derive(Clone, Copy)]

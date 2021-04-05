@@ -6,6 +6,7 @@ use crossterm::{
 use std::{fs::write, io::Stdout, path::PathBuf};
 
 use crate::{
+	buffer::Buffer,
 	elements::{
 		horizontal_scroll::HorizontalScroll, tool_menu::ToolMenu, vertical_scroll::VerticalScroll,
 		workspace::Workspace, Element,
@@ -89,13 +90,13 @@ impl State {
 		self.should_clear = true;
 	}
 
-	pub fn render(&self, w: &mut Stdout) -> Result<()> {
-		self.workspace.render(w)?;
-		self.vertical_scroll.render(w)?;
-		self.horizontal_scroll.render(w)?;
+	pub fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
+		self.workspace.render(w, buffer)?;
+		self.vertical_scroll.render(w, buffer)?;
+		self.horizontal_scroll.render(w, buffer)?;
 
 		for element in &self.elements {
-			element.render(w)?;
+			element.render(w, buffer)?;
 		}
 
 		Ok(())

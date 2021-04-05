@@ -9,7 +9,7 @@ use unicode_width::UnicodeWidthStr;
 
 use std::{io::Stdout, iter::once};
 
-use crate::{elements::Element, error::Result, tools::ToolSelect, State};
+use crate::{buffer::Buffer, elements::Element, error::Result, tools::ToolSelect, State};
 
 enum MenuElement {
 	Divider,
@@ -118,7 +118,7 @@ impl Element for ToolMenu {
 
 	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
-	fn render(&self, w: &mut Stdout) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
 		queue!(w, MoveTo(self.x, self.y))?;
 		self.elements
 			.iter()

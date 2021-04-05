@@ -8,6 +8,7 @@ use crossterm::{
 use std::{convert::TryFrom, io::Stdout, iter::once, path::Path};
 
 use crate::{
+	buffer::Buffer,
 	elements::Element,
 	error::Result,
 	tools::{block::Block, Tool, ToolSelect},
@@ -46,16 +47,28 @@ impl Workspace {
 	}
 
 	pub fn get_parameters(&self) -> ((usize, usize), (usize, usize), (usize, usize)) {
-		let mut max_x = 0;
-		let mut max_y = 0;
-		self.previous_tools
+		let (_, max_x, _, max_y) = self
+			.previous_tools
 			.iter()
-			.map(|tool| tool.render())
-			.flatten()
-			.for_each(|(x, y, _)| {
-				max_x = max_x.max(x);
-				max_y = max_y.max(y);
-			});
+			.map(|tool| tool.bounding_box())
+			.fold(
+				None,
+				|acc: Option<(usize, usize, usize, usize)>, new| match (acc, new) {
+					(
+						Some((min_x, max_x, min_y, max_y)),
+						Some((new_min_x, new_max_x, new_min_y, new_max_y)),
+					) => Some((
+						min_x.min(new_min_x),
+						max_x.max(new_max_x),
+						min_y.min(new_min_y),
+						max_y.max(new_max_y),
+					)),
+					(Some(old), None) => Some(old),
+					(None, Some(new)) => Some(new),
+					(None, None) => None,
+				},
+			)
+			.unwrap_or((0, 0, 0, 0));
 		(
 			(self.view_offset_x, self.view_offset_y),
 			(
@@ -78,26 +91,16 @@ impl Workspace {
 	pub fn set_tool(&mut self, tool: ToolSelect) { self.current_tool_selection = tool; }
 
 	pub fn render_to_file(&self) -> String {
-		let mut buffer = Vec::new();
+		let mut buffer = Buffer::new();
 
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.map(|tool| tool.render())
-			.flatten()
-			.for_each(|(x, y, c)| {
-				if buffer.len() < y + 1 {
-					buffer.resize(y + 1, Vec::new());
-				}
-				let row = &mut buffer[y];
-				if row.len() < x + 1 {
-					row.resize(x + 1, ' ');
-				}
-				row[x] = c;
-			});
+			.for_each(|tool| tool.render(&mut buffer));
 
 		// Convert each line to String and write out to file
 		buffer
+			.into_inner()
 			.into_iter()
 			.flat_map(|line| line.into_iter().chain(once('\n')))
 			.collect::<String>()
@@ -209,7 +212,7 @@ impl Element for Workspace {
 		Box::new(current_tool.key_event(event))
 	}
 
-	fn render(&self, w: &mut Stdout) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
 		let buffer_size_x = self.size_x as usize;
 		let buffer_size_y = self.size_y as usize;
 
@@ -219,26 +222,25 @@ impl Element for Workspace {
 		let max_x = self.view_offset_x + buffer_size_x;
 		let max_y = self.view_offset_y + buffer_size_y;
 
-		let mut buffer = vec![' '; self.size_x as usize * self.size_y as usize];
+		buffer.new_frame_bounded(min_x, min_y);
 
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.map(|tool| tool.render_bounded(min_x, max_x, min_y, max_y))
-			.flatten()
-			.for_each(|(x, y, c)| {
-				debug_assert!((min_x <= x && x < max_x) && (min_y <= y && y < max_y));
-				let x_in_buffer = x - self.view_offset_x;
-				let y_in_buffer = y - self.view_offset_y;
-				buffer[y_in_buffer * buffer_size_x + x_in_buffer] = c;
-			});
+			.for_each(|tool| tool.render_bounded(min_x, max_x, min_y, max_y, buffer));
+
+		let lines = buffer.output(buffer_size_x);
 
 		// Render buffer
 		for y in 0..buffer_size_y {
 			queue!(w, MoveTo(self.x, self.y + y as u16))?;
-			let line = &buffer[y * buffer_size_x..(y + 1) * buffer_size_x];
-			let line = line.iter().collect::<String>();
-			queue!(w, Print(line))?;
+			if let Some(line) = lines.get(y) {
+				queue!(w, Print(line))?;
+			}
+			else {
+				let line = once(' ').cycle().take(buffer_size_x).collect::<String>();
+				queue!(w, Print(line))?;
+			}
 		}
 
 		Ok(())

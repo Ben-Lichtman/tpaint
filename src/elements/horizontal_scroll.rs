@@ -7,7 +7,7 @@ use crossterm::{
 
 use std::io::Stdout;
 
-use crate::{elements::Element, error::Result, State};
+use crate::{buffer::Buffer, elements::Element, error::Result, State};
 
 pub struct HorizontalScroll {
 	x: u16,
@@ -83,7 +83,7 @@ impl Element for HorizontalScroll {
 
 	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
-	fn render(&self, w: &mut Stdout) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);
 		let view_start_bar = ((self.length as usize * self.view_start) / max_size) as u16;
 		let view_end_bar = ((self.length as usize * self.view_end) / max_size) as u16;

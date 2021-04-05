@@ -46,6 +46,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "imgref"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f96e022794baa432d2f38a4da7c1ee29f513366973378f64c420f864967c0145"
+
+[[package]]
 name = "instant"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,9 +265,10 @@ dependencies = [
 
 [[package]]
 name = "tpaint"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "crossterm",
+ "imgref",
  "line_drawing",
  "thiserror",
  "unicode-width",

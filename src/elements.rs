@@ -7,7 +7,7 @@ use crossterm::event::{KeyEvent, MouseEvent};
 
 use std::io::Stdout;
 
-use crate::{error::Result, state::State};
+use crate::{buffer::Buffer, error::Result, state::State};
 
 pub trait Element {
 	fn resize_event(&mut self, x: u16, y: u16);
@@ -18,5 +18,5 @@ pub trait Element {
 
 	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)>;
 
-	fn render(&self, w: &mut Stdout) -> Result<()>;
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()>;
 }

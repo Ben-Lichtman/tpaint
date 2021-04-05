@@ -1,6 +1,6 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use crate::{state::State, tools::Tool};
+use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct None;
@@ -12,9 +12,9 @@ impl Tool for None {
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
-	fn render(&self) -> Vec<(usize, usize, char)> { Vec::new() }
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> { Option::None }
 
-	fn render_bounded(&self, _: usize, _: usize, _: usize, _: usize) -> Vec<(usize, usize, char)> {
-		Vec::new()
-	}
+	fn render(&self, _: &mut Buffer) {}
+
+	fn render_bounded(&self, _: usize, _: usize, _: usize, _: usize, _: &mut Buffer) {}
 }

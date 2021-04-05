@@ -4,7 +4,7 @@ use line_drawing::Bresenham;
 
 use std::convert::TryFrom;
 
-use crate::{state::State, tools::Tool};
+use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Freehand {
@@ -37,12 +37,24 @@ impl Tool for Freehand {
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
-	fn render(&self) -> Vec<(usize, usize, char)> {
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> {
+		self.points
+			.iter()
+			.copied()
+			.fold(None, |acc, (x, y)| match acc {
+				Some((min_x, max_x, min_y, max_y)) => {
+					Some((min_x.min(x), max_x.max(x), min_y.min(y), max_y.max(y)))
+				}
+				None => Some((x, x, y, y)),
+			})
+	}
+
+	fn render(&self, buffer: &mut Buffer) {
 		self.points
 			.iter()
 			.copied()
 			.map(|(x, y)| (x, y, '█'))
-			.collect()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 
 	fn render_bounded(
@@ -51,12 +63,13 @@ impl Tool for Freehand {
 		max_x: usize,
 		min_y: usize,
 		max_y: usize,
-	) -> Vec<(usize, usize, char)> {
+		buffer: &mut Buffer,
+	) {
 		self.points
 			.iter()
 			.copied()
 			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.map(|(x, y)| (x, y, '█'))
-			.collect()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 }

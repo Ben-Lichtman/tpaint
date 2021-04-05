@@ -1,3 +1,4 @@
+mod buffer;
 mod elements;
 mod error;
 mod state;
@@ -20,7 +21,7 @@ use std::{
 	path::PathBuf,
 };
 
-use crate::{error::Result, state::State};
+use crate::{buffer::Buffer, error::Result, state::State};
 
 const DEFAULT_FILE_NAME: &str = "output.txt";
 
@@ -37,6 +38,7 @@ pub fn run(w: &mut Stdout) -> Result<()> {
 	w.flush()?;
 
 	let mut state = State::new(file_name, load)?;
+	let mut buffer = Buffer::new();
 
 	while state.should_exit() == false {
 		if state.should_clear() {
@@ -44,7 +46,7 @@ pub fn run(w: &mut Stdout) -> Result<()> {
 			state.set_should_clear(false);
 		}
 
-		state.render(w)?;
+		state.render(w, &mut buffer)?;
 
 		w.flush()?;
 

@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEventKind};
 
 use std::{fs::read_to_string, path::Path};
 
-use crate::{error::Result, state::State, tools::Tool};
+use crate::{buffer::Buffer, error::Result, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Block {
@@ -29,7 +29,24 @@ impl Tool for Block {
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
-	fn render(&self) -> Vec<(usize, usize, char)> { self.chars.clone() }
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> {
+		self.chars
+			.iter()
+			.copied()
+			.fold(None, |acc, (x, y, _)| match acc {
+				Some((min_x, max_x, min_y, max_y)) => {
+					Some((min_x.min(x), max_x.max(x), min_y.min(y), max_y.max(y)))
+				}
+				None => Some((x, x, y, y)),
+			})
+	}
+
+	fn render(&self, buffer: &mut Buffer) {
+		self.chars
+			.iter()
+			.copied()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
+	}
 
 	fn render_bounded(
 		&self,
@@ -37,11 +54,12 @@ impl Tool for Block {
 		max_x: usize,
 		min_y: usize,
 		max_y: usize,
-	) -> Vec<(usize, usize, char)> {
+		buffer: &mut Buffer,
+	) {
 		self.chars
 			.iter()
 			.copied()
 			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
-			.collect()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 }

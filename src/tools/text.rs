@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseEventKind};
 
 use std::convert::TryFrom;
 
-use crate::{state::State, tools::Tool};
+use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Text {
@@ -69,12 +69,21 @@ impl Tool for Text {
 		}
 	}
 
-	fn render(&self) -> Vec<(usize, usize, char)> {
+	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> {
+		Some((
+			self.x,
+			self.x + self.text.chars().count(),
+			self.y,
+			self.y + 1,
+		))
+	}
+
+	fn render(&self, buffer: &mut Buffer) {
 		self.text
 			.chars()
 			.enumerate()
 			.map(|(n, c)| (self.x + n, self.y, c))
-			.collect::<Vec<_>>()
+			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 
 	fn render_bounded(
@@ -83,7 +92,8 @@ impl Tool for Text {
 		max_x: usize,
 		min_y: usize,
 		max_y: usize,
-	) -> Vec<(usize, usize, char)> {
+		buffer: &mut Buffer,
+	) {
 		if min_y <= self.y && self.y < max_y {
 			self.text
 				.chars()
@@ -91,10 +101,7 @@ impl Tool for Text {
 				.enumerate()
 				.filter(|(n, _)| min_x <= self.x + n && self.x + n < max_x)
 				.map(|(n, c)| (self.x + n, self.y, c))
-				.collect::<Vec<_>>()
-		}
-		else {
-			Vec::new()
+				.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 		}
 	}
 }
