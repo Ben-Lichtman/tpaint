@@ -24,7 +24,7 @@ impl Block {
 
 impl Tool for Block {
 	fn mouse_event(&mut self, _: isize, _: isize, _: MouseEventKind) -> fn(state: &mut State) {
-		|_| ()
+		|state| state.reset_current_mouse_element()
 	}
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
