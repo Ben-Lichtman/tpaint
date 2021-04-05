@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 thiserror = "1.0.20"
-tui = { version = "0.9.5", features = ["crossterm"] }
 crossterm = "0.17.6"
 unicode-width = "0.1.8"
 
