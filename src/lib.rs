@@ -36,7 +36,7 @@ pub fn run(w: &mut Stdout) -> Result<()> {
 
 	w.flush()?;
 
-	let mut state = State::new(file_name, load);
+	let mut state = State::new(file_name, load)?;
 
 	while state.should_exit() == false {
 		if state.should_clear() {

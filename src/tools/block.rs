@@ -23,11 +23,11 @@ impl Block {
 }
 
 impl Tool for Block {
-	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
+	fn mouse_event(&mut self, _: isize, _: isize, _: MouseEventKind) -> fn(state: &mut State) {
 		|_| ()
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State) { |_| () }
+	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
 	fn render(&self) -> Vec<(usize, usize, char)> { self.chars.clone() }
 

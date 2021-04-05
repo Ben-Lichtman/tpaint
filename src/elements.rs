@@ -1,7 +1,7 @@
-pub mod buffer;
 pub mod horizontal_scroll;
 pub mod tool_menu;
 pub mod vertical_scroll;
+pub mod workspace;
 
 use crossterm::event::{KeyEvent, MouseEvent};
 

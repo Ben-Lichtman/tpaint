@@ -8,7 +8,7 @@ mod text;
 
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use crate::{elements::buffer::Buffer, state::State};
+use crate::state::State;
 
 pub trait Tool {
 	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State);

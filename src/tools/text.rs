@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent, MouseEventKind};
 
-use std::{convert::TryFrom, iter::once};
+use std::convert::TryFrom;
 
-use crate::{elements::buffer::Buffer, state::State, tools::Tool};
+use crate::{state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Text {

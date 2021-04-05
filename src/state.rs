@@ -1,6 +1,5 @@
 use crossterm::{
 	event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind},
-	queue,
 	terminal::size,
 };
 
@@ -8,8 +7,8 @@ use std::{fs::write, io::Stdout, path::PathBuf};
 
 use crate::{
 	elements::{
-		buffer::Buffer, horizontal_scroll::HorizontalScroll, tool_menu::ToolMenu,
-		vertical_scroll::VerticalScroll, Element,
+		horizontal_scroll::HorizontalScroll, tool_menu::ToolMenu, vertical_scroll::VerticalScroll,
+		workspace::Workspace, Element,
 	},
 	error::Result,
 	tools::ToolSelect,
@@ -17,7 +16,7 @@ use crate::{
 
 pub enum CurrentElement {
 	None,
-	Buffer,
+	Workspace,
 	VerticalScroll,
 	HorizontalScroll,
 	Element(usize),
@@ -26,31 +25,31 @@ pub enum CurrentElement {
 pub struct State {
 	should_exit: bool,
 	should_clear: bool,
-	buffer: Buffer,
+	workspace: Workspace,
+	current_mouse_element: CurrentElement,
 	vertical_scroll: VerticalScroll,
 	horizontal_scroll: HorizontalScroll,
-	current_mouse_element: CurrentElement,
 	elements: Vec<Box<dyn Element>>,
 	output_file: PathBuf,
 }
 
 impl State {
-	pub fn new(output_file: PathBuf, load: bool) -> Self {
+	pub fn new(output_file: PathBuf, load: bool) -> Result<Self> {
 		let (x, y) = size().unwrap();
-		let mut buffer = Buffer::new(x, y);
+		let mut workspace = Workspace::new(x, y);
 		if load {
-			buffer.add_file_block(&output_file);
+			workspace.add_file_block(&output_file)?;
 		}
-		Self {
+		Ok(Self {
 			should_exit: false,
 			should_clear: false,
-			buffer,
+			workspace,
+			current_mouse_element: CurrentElement::None,
 			vertical_scroll: VerticalScroll::new(x, y),
 			horizontal_scroll: HorizontalScroll::new(x, y),
-			current_mouse_element: CurrentElement::None,
 			elements: vec![Box::new(ToolMenu::new(x, y))],
 			output_file,
-		}
+		})
 	}
 
 	pub fn should_exit(&self) -> bool { self.should_exit }
@@ -61,26 +60,26 @@ impl State {
 
 	pub fn reset_current_mouse_element(&mut self) {
 		self.current_mouse_element = CurrentElement::None;
-		self.buffer.new_tool();
+		self.workspace.new_tool();
 	}
 
-	pub fn set_buffer_view_offset_x(&mut self, offset: usize) {
-		self.buffer.set_view_offset_x(offset);
+	pub fn set_workspace_view_offset_x(&mut self, offset: usize) {
+		self.workspace.set_view_offset_x(offset);
 	}
 
-	pub fn set_buffer_view_offset_y(&mut self, offset: usize) {
-		self.buffer.set_view_offset_y(offset);
+	pub fn set_workspace_view_offset_y(&mut self, offset: usize) {
+		self.workspace.set_view_offset_y(offset);
 	}
 
-	pub fn set_buffer_tool(&mut self, tool: ToolSelect) {
-		self.buffer.set_tool(tool);
-		self.buffer.new_tool();
+	pub fn set_workspace_tool(&mut self, tool: ToolSelect) {
+		self.workspace.set_tool(tool);
+		self.workspace.new_tool();
 	}
 
 	pub fn exit(&mut self) { self.should_exit = true }
 
 	pub fn resize(&mut self, x: u16, y: u16) {
-		self.buffer.resize_event(x, y);
+		self.workspace.resize_event(x, y);
 		self.vertical_scroll.resize_event(x, y);
 		self.horizontal_scroll.resize_event(x, y);
 
@@ -91,7 +90,7 @@ impl State {
 	}
 
 	pub fn render(&self, w: &mut Stdout) -> Result<()> {
-		self.buffer.render(w)?;
+		self.workspace.render(w)?;
 		self.vertical_scroll.render(w)?;
 		self.horizontal_scroll.render(w)?;
 
@@ -125,7 +124,7 @@ impl State {
 						} => self.save_file()?,
 						_ => (),
 					},
-					CurrentElement::Buffer => self.buffer.key_event(k)(self),
+					CurrentElement::Workspace => self.workspace.key_event(k)(self),
 					CurrentElement::VerticalScroll => self.vertical_scroll.key_event(k)(self),
 					CurrentElement::HorizontalScroll => self.horizontal_scroll.key_event(k)(self),
 					CurrentElement::Element(index) => self.elements[index].key_event(k)(self),
@@ -142,22 +141,22 @@ impl State {
 							..
 						} = event
 						{
-							// Check for mouse within buffer
-							if self.buffer.coord_within(x, y) {
-								// Click within buffer
-								self.current_mouse_element = CurrentElement::Buffer;
+							// Check for mouse within workspace
+							if self.workspace.coord_within(x, y) {
+								// Click within workspace
+								self.current_mouse_element = CurrentElement::Workspace;
 
-								self.buffer.mouse_event(event)(self)
+								self.workspace.mouse_event(event)(self)
 							}
 							else if self.vertical_scroll.coord_within(x, y) {
 								self.current_mouse_element = CurrentElement::VerticalScroll;
 
-								self.buffer.mouse_event(event)(self)
+								self.workspace.mouse_event(event)(self)
 							}
 							else if self.horizontal_scroll.coord_within(x, y) {
 								self.current_mouse_element = CurrentElement::HorizontalScroll;
 
-								self.buffer.mouse_event(event)(self)
+								self.workspace.mouse_event(event)(self)
 							}
 							else {
 								// Find an element with the mouse within
@@ -174,7 +173,7 @@ impl State {
 							}
 						}
 					}
-					CurrentElement::Buffer => self.buffer.mouse_event(event)(self),
+					CurrentElement::Workspace => self.workspace.mouse_event(event)(self),
 					CurrentElement::VerticalScroll => self.vertical_scroll.mouse_event(event)(self),
 					CurrentElement::HorizontalScroll => {
 						self.horizontal_scroll.mouse_event(event)(self)
@@ -193,7 +192,7 @@ impl State {
 
 	fn update_scrolls(&mut self) {
 		let ((view_start_x, view_start_y), (view_end_x, view_end_y), (max_size_x, max_size_y)) =
-			self.buffer.get_parameters();
+			self.workspace.get_parameters();
 		self.horizontal_scroll
 			.update_params(view_start_x, view_end_x, max_size_x);
 		self.vertical_scroll
@@ -201,7 +200,7 @@ impl State {
 	}
 
 	fn save_file(&self) -> Result<()> {
-		let output = self.buffer.render_to_file(&self.output_file);
+		let output = self.workspace.render_to_file();
 		write(&self.output_file, output.as_bytes())?;
 		Ok(())
 	}

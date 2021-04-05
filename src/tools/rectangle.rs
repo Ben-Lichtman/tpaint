@@ -44,7 +44,7 @@ impl Tool for Rectangle {
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State) { |_| () }
+	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
 	fn render(&self) -> Vec<(usize, usize, char)> {
 		if !self.started {

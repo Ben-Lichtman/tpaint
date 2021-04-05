@@ -68,7 +68,7 @@ impl ToolMenu {
 }
 
 impl Element for ToolMenu {
-	fn resize_event(&mut self, x: u16, y: u16) {
+	fn resize_event(&mut self, x: u16, _: u16) {
 		self.x = 0;
 		self.y = 0;
 		self.length = x - 1;
@@ -99,7 +99,7 @@ impl Element for ToolMenu {
 									self.selected = tool;
 									return Box::new(move |state| {
 										state.reset_current_mouse_element();
-										state.set_buffer_tool(tool);
+										state.set_workspace_tool(tool);
 									});
 								}
 								_ => (),
@@ -116,7 +116,7 @@ impl Element for ToolMenu {
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
+	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
 		queue!(w, MoveTo(self.x, self.y))?;

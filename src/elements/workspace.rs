@@ -5,7 +5,7 @@ use crossterm::{
 	style::Print,
 };
 
-use std::{convert::TryFrom, fs::write, io::Stdout, iter::once, mem::replace, path::Path};
+use std::{convert::TryFrom, io::Stdout, iter::once, path::Path};
 
 use crate::{
 	elements::Element,
@@ -14,7 +14,7 @@ use crate::{
 	State,
 };
 
-pub struct Buffer {
+pub struct Workspace {
 	x: u16,
 	y: u16,
 	size_x: u16,
@@ -27,7 +27,7 @@ pub struct Buffer {
 	previous_tools: Vec<Box<dyn Tool>>,
 }
 
-impl Buffer {
+impl Workspace {
 	pub fn new(x: u16, y: u16) -> Self {
 		let mut new = Self {
 			x: 0,
@@ -77,7 +77,7 @@ impl Buffer {
 
 	pub fn set_tool(&mut self, tool: ToolSelect) { self.current_tool_selection = tool; }
 
-	pub fn render_to_file(&self, file: &Path) -> String {
+	pub fn render_to_file(&self) -> String {
 		let mut buffer = Vec::new();
 
 		// Write to buffer in chronological order
@@ -109,7 +109,7 @@ impl Buffer {
 	}
 }
 
-impl Element for Buffer {
+impl Element for Workspace {
 	fn resize_event(&mut self, x: u16, y: u16) {
 		self.x = 0;
 		self.y = 2;

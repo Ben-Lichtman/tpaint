@@ -61,7 +61,7 @@ impl Element for VerticalScroll {
 					let cursor_offset = y.saturating_sub(self.y);
 					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
 
-					Box::new(move |state| state.set_buffer_view_offset_y(midpoint))
+					Box::new(move |state| state.set_workspace_view_offset_y(midpoint))
 				}
 				_ => Box::new(|_| ()),
 			},
@@ -70,7 +70,7 @@ impl Element for VerticalScroll {
 					let cursor_offset = y.saturating_sub(self.y);
 					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
 
-					Box::new(move |state| state.set_buffer_view_offset_y(midpoint))
+					Box::new(move |state| state.set_workspace_view_offset_y(midpoint))
 				}
 				_ => Box::new(|_| ()),
 			},
@@ -79,7 +79,7 @@ impl Element for VerticalScroll {
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
+	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);

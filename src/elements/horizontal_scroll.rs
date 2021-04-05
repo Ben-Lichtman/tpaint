@@ -63,7 +63,7 @@ impl Element for HorizontalScroll {
 					let cursor_offset = x.saturating_sub(self.x);
 					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
 
-					Box::new(move |state| state.set_buffer_view_offset_x(midpoint))
+					Box::new(move |state| state.set_workspace_view_offset_x(midpoint))
 				}
 				_ => Box::new(|_| ()),
 			},
@@ -72,7 +72,7 @@ impl Element for HorizontalScroll {
 					let cursor_offset = x.saturating_sub(self.x);
 					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
 
-					Box::new(move |state| state.set_buffer_view_offset_x(midpoint))
+					Box::new(move |state| state.set_workspace_view_offset_x(midpoint))
 				}
 				_ => Box::new(|_| ()),
 			},
@@ -81,7 +81,7 @@ impl Element for HorizontalScroll {
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
+	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);
