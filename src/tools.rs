@@ -2,9 +2,11 @@ pub mod block;
 
 mod erase;
 mod freehand;
+mod line;
 mod none;
 mod rectangle;
 mod text;
+mod thick_line;
 
 use crossterm::event::{KeyEvent, MouseEventKind};
 
@@ -39,6 +41,8 @@ pub enum ToolSelect {
 	Erase,
 	Rectangle,
 	Text,
+	Line,
+	ThickLine,
 }
 
 impl ToolSelect {
@@ -49,6 +53,8 @@ impl ToolSelect {
 			ToolSelect::Erase => Box::new(erase::Erase::default()),
 			ToolSelect::Rectangle => Box::new(rectangle::Rectangle::default()),
 			ToolSelect::Text => Box::new(text::Text::default()),
+			ToolSelect::Line => Box::new(line::Line::default()),
+			ToolSelect::ThickLine => Box::new(thick_line::ThickLine::default()),
 		}
 	}
 
@@ -59,6 +65,8 @@ impl ToolSelect {
 			ToolSelect::Erase => "Erase",
 			ToolSelect::Rectangle => "Rectangle",
 			ToolSelect::Text => "Text",
+			ToolSelect::Line => "Line",
+			ToolSelect::ThickLine => "Thick Line",
 		}
 	}
 }

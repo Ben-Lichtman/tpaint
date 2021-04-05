@@ -65,6 +65,10 @@ impl ToolMenu {
 				MenuElement::Tool("[]", ToolSelect::Rectangle),
 				MenuElement::Divider,
 				MenuElement::Tool("T", ToolSelect::Text),
+				MenuElement::Divider,
+				MenuElement::Tool("-", ToolSelect::Line),
+				MenuElement::Divider,
+				MenuElement::Tool("=", ToolSelect::ThickLine),
 			],
 			selected: ToolSelect::None,
 		};

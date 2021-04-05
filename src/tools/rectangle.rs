@@ -1,10 +1,8 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use bitflags::bitflags;
-
 use std::{convert::TryFrom, iter::once};
 
-use crate::{buffer::Buffer, state::State, tools::Tool};
+use crate::{box_drawing::BoxFlags, buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Rectangle {
@@ -12,86 +10,6 @@ pub struct Rectangle {
 	start: (usize, usize),
 	end: (usize, usize),
 	complete: bool,
-}
-
-bitflags! {
-	struct BoxDir: u8 {
-		const NONE = 0b0000;
-		const UP = 0b0001;
-		const DOWN = 0b0010;
-		const LEFT = 0b0100;
-		const RIGHT = 0b1000;
-	}
-}
-
-impl BoxDir {
-	fn from_char(c: char, ascii_mode: bool) -> Self {
-		match ascii_mode {
-			false => match c {
-				'╋' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
-
-				'┳' => Self::DOWN | Self::LEFT | Self::RIGHT,
-				'┻' => Self::UP | Self::LEFT | Self::RIGHT,
-				'┣' => Self::UP | Self::DOWN | Self::RIGHT,
-				'┫' => Self::UP | Self::DOWN | Self::LEFT,
-
-				'┛' => Self::UP | Self::LEFT,
-				'┗' => Self::UP | Self::RIGHT,
-				'┓' => Self::DOWN | Self::LEFT,
-				'┏' => Self::DOWN | Self::RIGHT,
-
-				'┃' => Self::UP | Self::DOWN,
-				'━' => Self::LEFT | Self::RIGHT,
-
-				_ => Self::NONE,
-			},
-			true => match c {
-				'+' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
-				'|' => Self::UP | Self::DOWN,
-				'-' => Self::LEFT | Self::RIGHT,
-				_ => Self::NONE,
-			},
-		}
-	}
-
-	fn to_char(self, ascii_mode: bool) -> char {
-		match ascii_mode {
-			false => match (
-				self.contains(Self::UP),
-				self.contains(Self::DOWN),
-				self.contains(Self::LEFT),
-				self.contains(Self::RIGHT),
-			) {
-				(true, true, true, true) => '╋',
-
-				(false, true, true, true) => '┳',
-				(true, false, true, true) => '┻',
-				(true, true, false, true) => '┣',
-				(true, true, true, false) => '┫',
-
-				(true, false, true, false) => '┛',
-				(true, false, false, true) => '┗',
-				(false, true, true, false) => '┓',
-				(false, true, false, true) => '┏',
-
-				(true, true, false, false) => '┃',
-				(false, false, true, true) => '━',
-
-				_ => ' ',
-			},
-			true => match (
-				self.contains(Self::UP),
-				self.contains(Self::DOWN),
-				self.contains(Self::LEFT),
-				self.contains(Self::RIGHT),
-			) {
-				(false, false, false, false) => ' ',
-				(true, true, false, false) => '|',
-				(false, false, true, true) => '-',
-				_ => '+',
-			},
-		}
-	}
 }
 
 impl Tool for Rectangle {
@@ -162,21 +80,21 @@ impl Tool for Rectangle {
 		let left = (rect_min_y + 1..rect_max_y).map(|y| (rect_min_x, y));
 		let right = (rect_min_y + 1..rect_max_y).map(|y| (rect_max_x, y));
 
-		let top_left = (rect_min_x, rect_min_y, BoxDir::DOWN | BoxDir::RIGHT);
-		let top_right = (rect_max_x, rect_min_y, BoxDir::DOWN | BoxDir::LEFT);
-		let bottom_left = (rect_min_x, rect_max_y, BoxDir::UP | BoxDir::RIGHT);
-		let bottom_right = (rect_max_x, rect_max_y, BoxDir::UP | BoxDir::LEFT);
+		let top_left = (rect_min_x, rect_min_y, BoxFlags::DOWN | BoxFlags::RIGHT);
+		let top_right = (rect_max_x, rect_min_y, BoxFlags::DOWN | BoxFlags::LEFT);
+		let bottom_left = (rect_min_x, rect_max_y, BoxFlags::UP | BoxFlags::RIGHT);
+		let bottom_right = (rect_max_x, rect_max_y, BoxFlags::UP | BoxFlags::LEFT);
 
-		top.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT))
-			.chain(bottom.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT)))
-			.chain(left.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
-			.chain(right.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+		top.map(|(x, y)| (x, y, BoxFlags::LEFT | BoxFlags::RIGHT))
+			.chain(bottom.map(|(x, y)| (x, y, BoxFlags::LEFT | BoxFlags::RIGHT)))
+			.chain(left.map(|(x, y)| (x, y, BoxFlags::UP | BoxFlags::DOWN)))
+			.chain(right.map(|(x, y)| (x, y, BoxFlags::UP | BoxFlags::DOWN)))
 			.chain(once(top_left))
 			.chain(once(top_right))
 			.chain(once(bottom_left))
 			.chain(once(bottom_right))
 			.for_each(|(x, y, box_dir)| {
-				let current_box = BoxDir::from_char(buffer.get_point(x, y), ascii_mode);
+				let current_box = BoxFlags::from_char(buffer.get_point(x, y), ascii_mode);
 				let final_box = box_dir | current_box;
 				buffer.render_point(x, y, final_box.to_char(ascii_mode))
 			})
@@ -205,22 +123,22 @@ impl Tool for Rectangle {
 		let left = (rect_min_y + 1..rect_max_y).map(|y| (rect_min_x, y));
 		let right = (rect_min_y + 1..rect_max_y).map(|y| (rect_max_x, y));
 
-		let top_left = (rect_min_x, rect_min_y, BoxDir::DOWN | BoxDir::RIGHT);
-		let top_right = (rect_max_x, rect_min_y, BoxDir::DOWN | BoxDir::LEFT);
-		let bottom_left = (rect_min_x, rect_max_y, BoxDir::UP | BoxDir::RIGHT);
-		let bottom_right = (rect_max_x, rect_max_y, BoxDir::UP | BoxDir::LEFT);
+		let top_left = (rect_min_x, rect_min_y, BoxFlags::DOWN | BoxFlags::RIGHT);
+		let top_right = (rect_max_x, rect_min_y, BoxFlags::DOWN | BoxFlags::LEFT);
+		let bottom_left = (rect_min_x, rect_max_y, BoxFlags::UP | BoxFlags::RIGHT);
+		let bottom_right = (rect_max_x, rect_max_y, BoxFlags::UP | BoxFlags::LEFT);
 
-		top.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT))
-			.chain(bottom.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT)))
-			.chain(left.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
-			.chain(right.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+		top.map(|(x, y)| (x, y, BoxFlags::LEFT | BoxFlags::RIGHT))
+			.chain(bottom.map(|(x, y)| (x, y, BoxFlags::LEFT | BoxFlags::RIGHT)))
+			.chain(left.map(|(x, y)| (x, y, BoxFlags::UP | BoxFlags::DOWN)))
+			.chain(right.map(|(x, y)| (x, y, BoxFlags::UP | BoxFlags::DOWN)))
 			.chain(once(top_left))
 			.chain(once(top_right))
 			.chain(once(bottom_left))
 			.chain(once(bottom_right))
 			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.for_each(|(x, y, box_dir)| {
-				let current_box = BoxDir::from_char(buffer.get_point(x, y), ascii_mode);
+				let current_box = BoxFlags::from_char(buffer.get_point(x, y), ascii_mode);
 				let final_box = box_dir | current_box;
 				buffer.render_point(x, y, final_box.to_char(ascii_mode))
 			})

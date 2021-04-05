@@ -1,3 +1,4 @@
+mod box_drawing;
 mod buffer;
 mod elements;
 mod error;
