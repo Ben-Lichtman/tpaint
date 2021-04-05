@@ -12,7 +12,7 @@ impl Tool for None {
 		y: isize,
 		kind: MouseEventKind,
 	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
-		(|_| (), |_| ())
+		(|state| state.reset_current_mouse_element(), |_| ())
 	}
 
 	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
