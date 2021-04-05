@@ -46,7 +46,7 @@ impl State {
 		let (size_x, size_y) = size().unwrap();
 
 		let default_buttons = vec![
-			BarElement::Text(Cow::Borrowed("Paint-tui")),
+			BarElement::Text(Cow::Borrowed("Tpaint")),
 			BarElement::Text(Cow::Borrowed("    ")),
 			BarElement::Button(Cow::Borrowed("⚫"), tool_pen),
 			BarElement::Text(Cow::Borrowed("    ")),
@@ -183,7 +183,9 @@ impl State {
 		modifier: KeyModifiers,
 	) -> Result<(), Error> {
 		let (view_offset_x, view_offset_y) = self.view_offset();
-		if y == 0 {
+		if x == self.size_x - 1 {
+		}
+		else if y == 0 {
 			let button = self.button_bar.get(x);
 			if let Some(BarElement::Button(_, f)) = button {
 				f(self)?;
@@ -200,6 +202,8 @@ impl State {
 				view_offset_x,
 				view_offset_y,
 			)?;
+		}
+		else if y == self.size_y - 1 {
 		}
 		Ok(())
 	}
@@ -224,7 +228,9 @@ impl State {
 	) -> Result<(), Error> {
 		let (prev_x, prev_y, prev_modifier) = self.mouse_left_start.unwrap();
 		let (view_offset_x, view_offset_y) = self.view_offset();
-		if y == 0 {
+		if x == self.size_x - 1 {
+		}
+		else if y == 0 {
 		}
 		else if y == 1 {
 		}
@@ -237,6 +243,8 @@ impl State {
 				view_offset_x,
 				view_offset_y,
 			)?;
+		}
+		else if y == self.size_y - 1 {
 		}
 		Ok(())
 	}
