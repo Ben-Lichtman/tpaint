@@ -3,12 +3,11 @@ use crossterm::{
 	event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
 	queue,
 	style::Print,
-	terminal::{Clear, ClearType},
 };
 
 use unicode_width::UnicodeWidthStr;
 
-use std::io::Stdout;
+use std::{io::Stdout, iter::once};
 
 use crate::{elements::Element, error::Result, tools::ToolSelect, State};
 
@@ -52,7 +51,10 @@ impl ToolMenu {
 			y: 0,
 			length: 0,
 			elements: vec![
+				MenuElement::Text("tpaint "),
 				MenuElement::Tool("⚫", ToolSelect::Freehand),
+				MenuElement::Divider,
+				MenuElement::Tool("⚪", ToolSelect::Erase),
 				MenuElement::Divider,
 				MenuElement::Tool("[]", ToolSelect::Rectangle),
 				MenuElement::Divider,
@@ -124,7 +126,11 @@ impl Element for ToolMenu {
 			.collect::<Result<Vec<_>>>()?;
 		queue!(w, MoveTo(self.x, self.y + 1))?;
 		queue!(w, Print(self.selected.name()))?;
-		queue!(w, Clear(ClearType::UntilNewLine))?;
+		let spaces = once(' ')
+			.cycle()
+			.take(self.length as usize - self.selected.name().len())
+			.collect::<String>();
+		queue!(w, Print(spaces))?;
 		Ok(())
 	}
 }

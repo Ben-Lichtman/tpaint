@@ -1,3 +1,6 @@
+pub mod block;
+
+mod erase;
 mod freehand;
 mod none;
 mod rectangle;
@@ -32,6 +35,7 @@ pub trait Tool {
 pub enum ToolSelect {
 	None,
 	Freehand,
+	Erase,
 	Rectangle,
 	Text,
 }
@@ -41,6 +45,7 @@ impl ToolSelect {
 		match self {
 			ToolSelect::None => Box::new(none::None::default()),
 			ToolSelect::Freehand => Box::new(freehand::Freehand::default()),
+			ToolSelect::Erase => Box::new(erase::Erase::default()),
 			ToolSelect::Rectangle => Box::new(rectangle::Rectangle::default()),
 			ToolSelect::Text => Box::new(text::Text::default()),
 		}
@@ -50,6 +55,7 @@ impl ToolSelect {
 		match self {
 			ToolSelect::None => "None",
 			ToolSelect::Freehand => "Freehand",
+			ToolSelect::Erase => "Erase",
 			ToolSelect::Rectangle => "Rectangle",
 			ToolSelect::Text => "Text",
 		}

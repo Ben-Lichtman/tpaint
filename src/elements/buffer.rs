@@ -5,12 +5,12 @@ use crossterm::{
 	style::Print,
 };
 
-use std::{convert::TryFrom, io::Stdout, iter::once, mem::replace};
+use std::{convert::TryFrom, fs::write, io::Stdout, iter::once, mem::replace, path::Path};
 
 use crate::{
 	elements::Element,
 	error::Result,
-	tools::{Tool, ToolSelect},
+	tools::{block::Block, Tool, ToolSelect},
 	State,
 };
 
@@ -83,6 +83,38 @@ impl Buffer {
 	pub fn set_tool(&mut self, tool: ToolSelect) {
 		self.current_tool_selection = tool;
 		self.finish_tool();
+	}
+
+	pub fn render_to_file(&self, file: &Path) -> String {
+		let mut buffer = Vec::new();
+
+		// Write to buffer in chronological order
+		self.previous_tools
+			.iter()
+			.chain(once(&self.current_tool))
+			.map(|tool| tool.render())
+			.flatten()
+			.for_each(|(x, y, c)| {
+				if buffer.len() < y + 1 {
+					buffer.resize(y + 1, Vec::new());
+				}
+				let row = &mut buffer[y];
+				if row.len() < x + 1 {
+					row.resize(x + 1, ' ');
+				}
+				row[x] = c;
+			});
+
+		// Convert each line to String and write out to file
+		buffer
+			.into_iter()
+			.flat_map(|line| line.into_iter().chain(once('\n')))
+			.collect::<String>()
+	}
+
+	pub fn add_file_block(&mut self, input_file: &Path) -> Result<()> {
+		self.previous_tools.push(Box::new(Block::new(input_file)?));
+		Ok(())
 	}
 }
 

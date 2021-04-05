@@ -4,7 +4,7 @@ use crossterm::{
 	terminal::size,
 };
 
-use std::io::Stdout;
+use std::{fs::write, io::Stdout, path::PathBuf};
 
 use crate::{
 	elements::{
@@ -31,19 +31,23 @@ pub struct State {
 	horizontal_scroll: HorizontalScroll,
 	current_mouse_element: CurrentElement,
 	elements: Vec<Box<dyn Element>>,
+	output_file: PathBuf,
 }
 
 impl State {
-	pub fn new() -> Self {
+	pub fn new(output_file: PathBuf) -> Self {
 		let (x, y) = size().unwrap();
+		let mut buffer = Buffer::new(x, y);
+		buffer.add_file_block(&output_file);
 		Self {
 			should_exit: false,
 			should_clear: false,
-			buffer: Buffer::new(x, y),
+			buffer,
 			vertical_scroll: VerticalScroll::new(x, y),
 			horizontal_scroll: HorizontalScroll::new(x, y),
 			current_mouse_element: CurrentElement::None,
 			elements: vec![Box::new(ToolMenu::new(x, y))],
+			output_file,
 		}
 	}
 
@@ -84,6 +88,7 @@ impl State {
 		self.buffer.render(w)?;
 		self.vertical_scroll.render(w)?;
 		self.horizontal_scroll.render(w)?;
+
 		for element in &self.elements {
 			element.render(w)?;
 		}
@@ -93,23 +98,33 @@ impl State {
 
 	pub fn handle_event(&mut self, event: Event) -> Result<()> {
 		match event {
-			Event::Key(k) => match k {
-				KeyEvent {
+			Event::Key(k) => {
+				// Exit on ctrl-c
+				if let KeyEvent {
 					code: KeyCode::Char('c'),
 					modifiers: KeyModifiers::CONTROL,
-				} => self.exit(),
-				KeyEvent {
-					code: KeyCode::Char('q'),
-					modifiers: KeyModifiers::NONE,
-				} => self.exit(),
-				_ => match self.current_mouse_element {
-					CurrentElement::None => {}
+				} = k
+				{
+					self.exit()
+				};
+				match self.current_mouse_element {
+					CurrentElement::None => match k {
+						KeyEvent {
+							code: KeyCode::Char('q'),
+							modifiers: KeyModifiers::NONE,
+						} => self.exit(),
+						KeyEvent {
+							code: KeyCode::Char('s'),
+							modifiers: KeyModifiers::NONE,
+						} => self.save_file()?,
+						_ => (),
+					},
 					CurrentElement::Buffer => self.buffer.key_event(k)(self),
 					CurrentElement::VerticalScroll => self.vertical_scroll.key_event(k)(self),
 					CurrentElement::HorizontalScroll => self.horizontal_scroll.key_event(k)(self),
 					CurrentElement::Element(index) => self.elements[index].key_event(k)(self),
-				},
-			},
+				}
+			}
 
 			Event::Mouse(event) => {
 				match self.current_mouse_element {
@@ -177,5 +192,11 @@ impl State {
 			.update_params(view_start_x, view_end_x, max_size_x);
 		self.vertical_scroll
 			.update_params(view_start_y, view_end_y, max_size_y);
+	}
+
+	fn save_file(&self) -> Result<()> {
+		let output = self.buffer.render_to_file(&self.output_file);
+		write(&self.output_file, output.as_bytes())?;
+		Ok(())
 	}
 }
