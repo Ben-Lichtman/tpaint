@@ -28,6 +28,8 @@ impl Buffer {
 	}
 
 	pub fn get_point(&self, x: usize, y: usize) -> char {
+		let x = x - self.start_x;
+		let y = y - self.start_y;
 		*self.grid.get(y).and_then(|y| y.get(x)).unwrap_or(&' ')
 	}
 

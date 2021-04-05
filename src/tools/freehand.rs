@@ -55,7 +55,7 @@ impl Tool for Freehand {
 		self.points
 			.iter()
 			.copied()
-			.map(|(x, y)| (x, y, '█'))
+			.map(|(x, y)| (x, y, if ascii_mode { '#' } else { '█' }))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 
@@ -66,12 +66,13 @@ impl Tool for Freehand {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	) {
 		self.points
 			.iter()
 			.copied()
 			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
-			.map(|(x, y)| (x, y, '█'))
+			.map(|(x, y)| (x, y, if ascii_mode { '#' } else { '█' }))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 

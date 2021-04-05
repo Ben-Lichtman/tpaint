@@ -25,50 +25,71 @@ bitflags! {
 }
 
 impl BoxDir {
-	fn from_char(c: char) -> Self {
-		match c {
-			'╋' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
+	fn from_char(c: char, ascii_mode: bool) -> Self {
+		match ascii_mode {
+			false => match c {
+				'╋' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
 
-			'┳' => Self::DOWN | Self::LEFT | Self::RIGHT,
-			'┻' => Self::UP | Self::LEFT | Self::RIGHT,
-			'┣' => Self::UP | Self::DOWN | Self::RIGHT,
-			'┫' => Self::UP | Self::DOWN | Self::LEFT,
+				'┳' => Self::DOWN | Self::LEFT | Self::RIGHT,
+				'┻' => Self::UP | Self::LEFT | Self::RIGHT,
+				'┣' => Self::UP | Self::DOWN | Self::RIGHT,
+				'┫' => Self::UP | Self::DOWN | Self::LEFT,
 
-			'┛' => Self::UP | Self::LEFT,
-			'┗' => Self::UP | Self::RIGHT,
-			'┓' => Self::DOWN | Self::LEFT,
-			'┏' => Self::DOWN | Self::RIGHT,
+				'┛' => Self::UP | Self::LEFT,
+				'┗' => Self::UP | Self::RIGHT,
+				'┓' => Self::DOWN | Self::LEFT,
+				'┏' => Self::DOWN | Self::RIGHT,
 
-			'┃' => Self::UP | Self::DOWN,
-			'━' => Self::LEFT | Self::RIGHT,
+				'┃' => Self::UP | Self::DOWN,
+				'━' => Self::LEFT | Self::RIGHT,
 
-			_ => Self::NONE,
+				_ => Self::NONE,
+			},
+			true => match c {
+				'+' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
+				'|' => Self::UP | Self::DOWN,
+				'-' => Self::LEFT | Self::RIGHT,
+				_ => Self::NONE,
+			},
 		}
 	}
 
-	fn to_char(self) -> char {
-		match (
-			self.contains(Self::UP),
-			self.contains(Self::DOWN),
-			self.contains(Self::LEFT),
-			self.contains(Self::RIGHT),
-		) {
-			(true, true, true, true) => '╋',
+	fn to_char(self, ascii_mode: bool) -> char {
+		match ascii_mode {
+			false => match (
+				self.contains(Self::UP),
+				self.contains(Self::DOWN),
+				self.contains(Self::LEFT),
+				self.contains(Self::RIGHT),
+			) {
+				(true, true, true, true) => '╋',
 
-			(false, true, true, true) => '┳',
-			(true, false, true, true) => '┻',
-			(true, true, false, true) => '┣',
-			(true, true, true, false) => '┫',
+				(false, true, true, true) => '┳',
+				(true, false, true, true) => '┻',
+				(true, true, false, true) => '┣',
+				(true, true, true, false) => '┫',
 
-			(true, false, true, false) => '┛',
-			(true, false, false, true) => '┗',
-			(false, true, true, false) => '┓',
-			(false, true, false, true) => '┏',
+				(true, false, true, false) => '┛',
+				(true, false, false, true) => '┗',
+				(false, true, true, false) => '┓',
+				(false, true, false, true) => '┏',
 
-			(true, true, false, false) => '┃',
-			(false, false, true, true) => '━',
+				(true, true, false, false) => '┃',
+				(false, false, true, true) => '━',
 
-			_ => ' ',
+				_ => ' ',
+			},
+			true => match (
+				self.contains(Self::UP),
+				self.contains(Self::DOWN),
+				self.contains(Self::LEFT),
+				self.contains(Self::RIGHT),
+			) {
+				(false, false, false, false) => ' ',
+				(true, true, false, false) => '|',
+				(false, false, true, true) => '-',
+				_ => '+',
+			},
 		}
 	}
 }
@@ -155,9 +176,9 @@ impl Tool for Rectangle {
 			.chain(once(bottom_left))
 			.chain(once(bottom_right))
 			.for_each(|(x, y, box_dir)| {
-				let current_box = BoxDir::from_char(buffer.get_point(x, y));
+				let current_box = BoxDir::from_char(buffer.get_point(x, y), ascii_mode);
 				let final_box = box_dir | current_box;
-				buffer.render_point(x, y, final_box.to_char())
+				buffer.render_point(x, y, final_box.to_char(ascii_mode))
 			})
 	}
 
@@ -168,6 +189,7 @@ impl Tool for Rectangle {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	) {
 		if !self.started {
 			return;
@@ -198,9 +220,9 @@ impl Tool for Rectangle {
 			.chain(once(bottom_right))
 			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.for_each(|(x, y, box_dir)| {
-				let current_box = BoxDir::from_char(buffer.get_point(x, y));
+				let current_box = BoxDir::from_char(buffer.get_point(x, y), ascii_mode);
 				let final_box = box_dir | current_box;
-				buffer.render_point(x, y, final_box.to_char())
+				buffer.render_point(x, y, final_box.to_char(ascii_mode))
 			})
 	}
 

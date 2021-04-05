@@ -26,6 +26,7 @@ pub trait Tool {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	);
 
 	fn complete(&self) -> bool;

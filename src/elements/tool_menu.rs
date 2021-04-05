@@ -5,8 +5,6 @@ use crossterm::{
 	style::Print,
 };
 
-use unicode_width::UnicodeWidthStr;
-
 use std::{io::Stdout, iter::once};
 
 use crate::{buffer::Buffer, elements::Element, error::Result, tools::ToolSelect, State};
@@ -22,19 +20,22 @@ impl MenuElement {
 	fn width(&self) -> usize {
 		match self {
 			Self::Divider => 3,
-			Self::Text(t) => UnicodeWidthStr::width(*t),
-			Self::Tool(t, _) => UnicodeWidthStr::width(*t),
-			Self::Mode(t) => UnicodeWidthStr::width(*t),
+			Self::Text(t) => t.chars().count(),
+			Self::Tool(t, _) => t.chars().count(),
+			Self::Mode(t) => t.chars().count(),
 		}
 	}
 
-	fn render(&self, w: &mut Stdout) -> Result<()> {
-		match self {
-			Self::Divider => queue!(w, Print(" | "))?,
-			Self::Text(t) => queue!(w, Print(t))?,
-			Self::Tool(t, _) => queue!(w, Print(t))?,
-			Self::Mode(t) => queue!(w, Print(t))?,
-		}
+	fn render(&self, w: &mut Stdout, _: bool) -> Result<()> {
+		queue!(
+			w,
+			Print(match self {
+				Self::Divider => " | ",
+				Self::Text(t) => t,
+				Self::Tool(t, _) => t,
+				Self::Mode(t) => t,
+			})
+		)?;
 		Ok(())
 	}
 }
@@ -57,7 +58,7 @@ impl ToolMenu {
 				MenuElement::Text("tpaint "),
 				MenuElement::Mode("(mode)"),
 				MenuElement::Divider,
-				MenuElement::Tool("$", ToolSelect::Freehand),
+				MenuElement::Tool("#", ToolSelect::Freehand),
 				MenuElement::Divider,
 				MenuElement::Tool("&", ToolSelect::Erase),
 				MenuElement::Divider,
@@ -132,7 +133,7 @@ impl Element for ToolMenu {
 		queue!(w, MoveTo(self.x, self.y))?;
 		self.elements
 			.iter()
-			.map(|e| e.render(w))
+			.map(|e| e.render(w, ascii_mode))
 			.collect::<Result<Vec<_>>>()?;
 		queue!(w, MoveTo(self.x, self.y + 1))?;
 		queue!(w, Print(self.selected.name()))?;

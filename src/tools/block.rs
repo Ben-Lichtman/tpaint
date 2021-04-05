@@ -55,6 +55,7 @@ impl Tool for Block {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	) {
 		self.chars
 			.iter()

@@ -66,6 +66,7 @@ impl Tool for Erase {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	) {
 		self.points
 			.iter()

@@ -238,7 +238,7 @@ impl Element for Workspace {
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.for_each(|tool| tool.render_bounded(min_x, max_x, min_y, max_y, buffer));
+			.for_each(|tool| tool.render_bounded(min_x, max_x, min_y, max_y, buffer, ascii_mode));
 
 		let lines = buffer.output(buffer_size_x);
 

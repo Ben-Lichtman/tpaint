@@ -96,6 +96,7 @@ impl Tool for Text {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
+		ascii_mode: bool,
 	) {
 		if min_y <= self.y && self.y < max_y {
 			self.text
