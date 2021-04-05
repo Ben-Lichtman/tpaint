@@ -1,17 +1,15 @@
-use crossterm::cursor::{MoveDown, MoveToNextLine};
-use crossterm::queue;
-use crossterm::style::Print;
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::{
+	cursor::{MoveDown, MoveToNextLine},
+	queue,
+	style::Print,
+	terminal::{Clear, ClearType},
+};
 
 use unicode_width::UnicodeWidthStr;
 
-use std::borrow::Cow;
-use std::cmp::max;
-use std::io::Write;
+use std::{borrow::Cow, cmp::max, io::Write};
 
-use crate::error::Error;
-use crate::state::State;
-use crate::tool::Tool;
+use crate::{error::Error, state::State, tool::Tool};
 
 pub enum BarElement {
 	Divider,

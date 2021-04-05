@@ -1,7 +1,6 @@
 use std::io::Write;
 
-use crate::buffer::Buffer;
-use crate::error::Error;
+use crate::{buffer::Buffer, error::Error};
 
 pub enum Tool {
 	None,

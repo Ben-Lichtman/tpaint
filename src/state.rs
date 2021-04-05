@@ -1,17 +1,19 @@
-use crossterm::cursor::{MoveTo, MoveToNextLine};
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent};
-use crossterm::queue;
-use crossterm::style::Print;
-use crossterm::terminal::{size, Clear, ClearType};
+use crossterm::{
+	cursor::{MoveTo, MoveToNextLine},
+	event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent},
+	queue,
+	style::Print,
+	terminal::{size, Clear, ClearType},
+};
 
-use std::borrow::Cow;
-use std::convert::TryFrom;
-use std::io::Write;
+use std::{borrow::Cow, convert::TryFrom, io::Write};
 
-use crate::buffer::Buffer;
-use crate::elements::{BarElement, ButtonBar, ScrollBar, ToolBar};
-use crate::error::Error;
-use crate::tool::Tool;
+use crate::{
+	buffer::Buffer,
+	elements::{BarElement, ButtonBar, ScrollBar, ToolBar},
+	error::Error,
+	tool::Tool,
+};
 
 pub struct State {
 	should_exit: bool,

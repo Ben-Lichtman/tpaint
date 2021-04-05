@@ -1,7 +1,9 @@
-use crossterm::cursor::{MoveDown, RestorePosition, SavePosition};
-use crossterm::queue;
-use crossterm::style::Print;
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::{
+	cursor::{MoveDown, RestorePosition, SavePosition},
+	queue,
+	style::Print,
+	terminal::{Clear, ClearType},
+};
 
 use std::io::Write;
 
