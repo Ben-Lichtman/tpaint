@@ -1,303 +1,162 @@
 use crossterm::{
-	cursor::{MoveTo, MoveToNextLine},
-	event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent},
-	queue,
-	style::Print,
-	terminal::{size, Clear, ClearType},
+	event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind},
+	terminal::size,
 };
 
-use std::{borrow::Cow, convert::TryFrom, io::Write};
+use std::io::Stdout;
 
 use crate::{
-	buffer::Buffer,
-	elements::{BarElement, ButtonBar, ScrollBar, ToolBar},
-	error::Error,
-	tool::Tool,
+	elements::{
+		buffer::Buffer, horizontal_scroll::HorizontalScroll, vertical_scroll::VerticalScroll,
+		Element,
+	},
+	error::Result,
 };
+
+pub enum CurrentElement {
+	None,
+	Buffer,
+	VerticalScroll,
+	HorizontalScroll,
+	Element(usize),
+}
 
 pub struct State {
 	should_exit: bool,
-	size_x: u16,
-	size_y: u16,
-	view_offset_x: usize,
-	view_offset_y: usize,
-	view_offset_temp_x: isize,
-	view_offset_temp_y: isize,
-	button_bar: ButtonBar,
-	tool_bar: ToolBar,
-	bottom_scroll: ScrollBar,
-	side_scroll: ScrollBar,
+	should_clear: bool,
 	buffer: Buffer,
-	current_tool: Tool,
-	mouse_left_start: Option<(u16, u16, KeyModifiers)>,
-	mouse_right_start: Option<(u16, u16, KeyModifiers)>,
-}
-
-fn tool_pen(state: &mut State) -> Result<(), Error> {
-	state.current_tool = Tool::Pen;
-	Ok(())
-}
-
-fn tool_erase(state: &mut State) -> Result<(), Error> {
-	state.current_tool = Tool::Erase;
-	Ok(())
+	vertical_scroll: VerticalScroll,
+	horizontal_scroll: HorizontalScroll,
+	current_mouse_element: CurrentElement,
+	elements: Vec<Box<dyn Element>>,
 }
 
 impl State {
 	pub fn new() -> Self {
-		let (size_x, size_y) = size().unwrap();
-
-		let default_buttons = vec![
-			BarElement::Text(Cow::Borrowed("Tpaint")),
-			BarElement::Text(Cow::Borrowed("    ")),
-			BarElement::Button(Cow::Borrowed("⚫"), tool_pen),
-			BarElement::Text(Cow::Borrowed("    ")),
-			BarElement::Button(Cow::Borrowed("⚪"), tool_erase),
-			BarElement::Text(Cow::Borrowed("    ")),
-		];
-
+		let (x, y) = size().unwrap();
 		Self {
 			should_exit: false,
-			size_x,
-			size_y,
-			view_offset_x: 0,
-			view_offset_y: 0,
-			view_offset_temp_x: 0,
-			view_offset_temp_y: 0,
-			button_bar: ButtonBar::new(default_buttons),
-			tool_bar: ToolBar,
-			bottom_scroll: ScrollBar { vertical: false },
-			side_scroll: ScrollBar { vertical: true },
-			buffer: Buffer::new(),
-			current_tool: Tool::None,
-			mouse_left_start: None,
-			mouse_right_start: None,
+			should_clear: false,
+			buffer: Buffer::new(x, y),
+			vertical_scroll: VerticalScroll::new(x, y),
+			horizontal_scroll: HorizontalScroll::new(x, y),
+			current_mouse_element: CurrentElement::None,
+			elements: vec![],
 		}
 	}
 
 	pub fn should_exit(&self) -> bool { self.should_exit }
 
-	pub fn render(&self, w: &mut impl Write) -> Result<(), Error> {
-		queue!(w, MoveTo(0, 0))?;
+	pub fn should_clear(&self) -> bool { self.should_clear }
 
-		let (view_offset_x, view_offset_y) = self.view_offset();
+	pub fn set_should_clear(&mut self, should_clear: bool) { self.should_clear = should_clear; }
 
-		self.button_bar.render(w)?;
+	pub fn reset_current_mouse_element(&mut self) {
+		self.current_mouse_element = CurrentElement::None;
+	}
 
-		self.tool_bar.render(w, &self.current_tool)?;
+	pub fn exit(&mut self) { self.should_exit = true }
 
-		self.buffer.render(
-			w,
-			view_offset_x,
-			view_offset_y,
-			self.size_x - 1,
-			self.size_y - 4,
-		)?;
+	pub fn resize(&mut self, x: u16, y: u16) {
+		self.buffer.resize_event(x, y);
+		self.vertical_scroll.resize_event(x, y);
+		self.horizontal_scroll.resize_event(x, y);
 
-		queue!(w, Clear(ClearType::UntilNewLine), MoveToNextLine(1))?;
+		for element in &mut self.elements {
+			element.resize_event(x, y);
+		}
+		self.should_clear = true;
+	}
 
-		self.bottom_scroll.render(
-			w,
-			view_offset_x,
-			self.size_x - 1,
-			self.buffer.max_dimensions().0,
-			self.size_x - 1,
-		)?;
-
-		queue!(w, MoveTo(self.size_x - 1, 2))?;
-
-		self.side_scroll.render(
-			w,
-			view_offset_y,
-			self.size_y - 4,
-			self.buffer.max_dimensions().1,
-			self.size_y - 4,
-		)?;
-
-		w.flush()?;
-
+	pub fn render(&self, w: &mut Stdout) -> Result<()> {
+		self.buffer.render(w)?;
+		self.vertical_scroll.render(w)?;
+		self.horizontal_scroll.render(w)?;
+		for element in &self.elements {
+			element.render(w)?;
+		}
 		Ok(())
 	}
 
-	pub fn handle_event(&mut self, w: &mut impl Write, event: Event) -> Result<(), Error> {
+	pub fn handle_event(&mut self, event: Event) -> Result<()> {
 		match event {
 			Event::Key(k) => match k {
 				KeyEvent {
 					code: KeyCode::Char('c'),
 					modifiers: KeyModifiers::CONTROL,
-				} => self.should_exit = true,
-
+				} => self.exit(),
+				KeyEvent {
+					code: KeyCode::Char('q'),
+					modifiers: KeyModifiers::NONE,
+				} => self.exit(),
 				_ => (),
 			},
 
-			Event::Mouse(m) => match m {
-				MouseEvent::Down(button, x, y, modifier) => match button {
-					MouseButton::Left => {
-						self.left_mouse_down_event(button, x, y, modifier)?;
-						self.mouse_left_start = Some((x, y, modifier))
-					}
-					MouseButton::Right => {
-						self.right_mouse_down_event(button, x, y, modifier)?;
-						self.mouse_right_start = Some((x, y, modifier))
-					}
-					MouseButton::Middle => (),
-				},
+			Event::Mouse(event) => {
+				match self.current_mouse_element {
+					CurrentElement::None => {
+						if let MouseEvent {
+							kind: MouseEventKind::Down(_),
+							column: x,
+							row: y,
+							..
+						} = event
+						{
+							// Check for mouse within buffer
+							if self.buffer.coord_within(x, y) {
+								// Click within buffer
+								self.current_mouse_element = CurrentElement::Buffer;
 
-				MouseEvent::Up(button, x, y, modifier) => match button {
-					MouseButton::Left => {
-						self.left_mouse_up_event(button, x, y, modifier)?;
-						self.mouse_left_start = None
-					}
-					MouseButton::Right => {
-						self.right_mouse_up_event(button, x, y, modifier)?;
-						self.mouse_right_start = None
-					}
-					MouseButton::Middle => (),
-				},
+								self.buffer.mouse_event(event)(self)
+							}
+							else if self.vertical_scroll.coord_within(x, y) {
+								self.current_mouse_element = CurrentElement::VerticalScroll;
 
-				MouseEvent::Drag(button, x, y, modifier) => match button {
-					MouseButton::Left => {
-						self.left_mouse_drag_event(button, x, y, modifier)?;
-					}
-					MouseButton::Right => {
-						self.right_mouse_drag_event(button, x, y, modifier)?;
-					}
-					MouseButton::Middle => (),
-				},
+								self.buffer.mouse_event(event)(self)
+							}
+							else if self.horizontal_scroll.coord_within(x, y) {
+								self.current_mouse_element = CurrentElement::HorizontalScroll;
 
-				_ => (),
-			},
+								self.buffer.mouse_event(event)(self)
+							}
+							else {
+								// Find an element with the mouse within
+								if let Some((n, element)) = self
+									.elements
+									.iter_mut()
+									.enumerate()
+									.find(|(_, element)| element.coord_within(x, y))
+								{
+									self.current_mouse_element = CurrentElement::Element(n);
 
-			Event::Resize(x, y) => {
-				self.size_x = x;
-				self.size_y = y;
+									element.mouse_event(event)(self)
+								}
+							}
+						}
+					}
+					CurrentElement::Buffer => self.buffer.mouse_event(event)(self),
+					CurrentElement::VerticalScroll => self.vertical_scroll.mouse_event(event)(self),
+					CurrentElement::HorizontalScroll => {
+						self.horizontal_scroll.mouse_event(event)(self)
+					}
+					CurrentElement::Element(index) => self.elements[index].mouse_event(event)(self),
+				};
 			}
+
+			Event::Resize(x, y) => self.resize(x, y),
 		}
+
+		self.update_scrolls();
 
 		Ok(())
 	}
 
-	fn left_mouse_down_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		let (view_offset_x, view_offset_y) = self.view_offset();
-		if x == self.size_x - 1 {
-		}
-		else if y == 0 {
-			let button = self.button_bar.get(x);
-			if let Some(BarElement::Button(_, f)) = button {
-				f(self)?;
-			}
-		}
-		else if y == 1 {
-		}
-		else if y < self.size_y - 2 {
-			let y = y - 2;
-			self.current_tool.left_mouse_down_event(
-				&mut self.buffer,
-				x,
-				y,
-				view_offset_x,
-				view_offset_y,
-			)?;
-		}
-		else if y == self.size_y - 1 {
-		}
-		Ok(())
-	}
-
-	fn left_mouse_up_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		let (prev_x, prev_y, prev_modifier) = self.mouse_left_start.unwrap();
-		Ok(())
-	}
-
-	fn left_mouse_drag_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		let (prev_x, prev_y, prev_modifier) = self.mouse_left_start.unwrap();
-		let (view_offset_x, view_offset_y) = self.view_offset();
-		if x == self.size_x - 1 {
-		}
-		else if y == 0 {
-		}
-		else if y == 1 {
-		}
-		else if y < self.size_y - 2 {
-			let y = y - 2;
-			self.current_tool.left_mouse_drag_event(
-				&mut self.buffer,
-				x,
-				y,
-				view_offset_x,
-				view_offset_y,
-			)?;
-		}
-		else if y == self.size_y - 1 {
-		}
-		Ok(())
-	}
-
-	fn right_mouse_down_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		Ok(())
-	}
-
-	fn right_mouse_up_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		let (prev_x, prev_y, prev_modifier) = self.mouse_right_start.unwrap();
-		let x = (self.view_offset_x as isize).saturating_add(self.view_offset_temp_x);
-		let y = (self.view_offset_y as isize).saturating_add(self.view_offset_temp_y);
-		let x = usize::try_from(x).unwrap_or(0);
-		let y = usize::try_from(y).unwrap_or(0);
-		self.view_offset_x = x;
-		self.view_offset_y = y;
-		self.view_offset_temp_x = 0;
-		self.view_offset_temp_y = 0;
-		Ok(())
-	}
-
-	fn right_mouse_drag_event(
-		&mut self,
-		button: MouseButton,
-		x: u16,
-		y: u16,
-		modifier: KeyModifiers,
-	) -> Result<(), Error> {
-		let (prev_x, prev_y, prev_modifier) = self.mouse_right_start.unwrap();
-		self.view_offset_temp_x = prev_x as isize - x as isize;
-		self.view_offset_temp_y = prev_y as isize - y as isize;
-		Ok(())
-	}
-
-	fn view_offset(&self) -> (usize, usize) {
-		let x = (self.view_offset_x as isize).saturating_add(self.view_offset_temp_x);
-		let y = (self.view_offset_y as isize).saturating_add(self.view_offset_temp_y);
-		let x = usize::try_from(x).unwrap_or(0);
-		let y = usize::try_from(y).unwrap_or(0);
-		(x, y)
+	fn update_scrolls(&mut self) {
+		let ((view_start_x, view_start_y), (view_end_x, view_end_y), (max_size_x, max_size_y)) =
+			self.buffer.get_parameters();
+		self.horizontal_scroll
+			.update_params(view_start_x, view_end_x, max_size_x);
+		self.vertical_scroll
+			.update_params(view_start_y, view_end_y, max_size_y);
 	}
 }

@@ -8,7 +8,9 @@ repository = "https://github.com/Ben-Lichtman/tpaint"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "1.0.20"
-crossterm = "0.17.6"
+crossterm = "0.19.0"
 unicode-width = "0.1.8"
+thiserror = "1.0.24"
+line_drawing = "0.8.0"
+
 
