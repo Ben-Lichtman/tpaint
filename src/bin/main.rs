@@ -1,6 +1,6 @@
 use std::io::stdout;
 
-use tui_app::run;
+use tpaint::run;
 
 fn main() {
 	let mut stdout = stdout();
