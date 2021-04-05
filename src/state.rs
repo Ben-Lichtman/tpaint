@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 use std::io::Write;
 
 use crate::buffer::Buffer;
-use crate::elements::{BarElement, ButtonBar, ScrollBar};
+use crate::elements::{BarElement, ButtonBar, ScrollBar, ToolBar};
 use crate::error::Error;
 use crate::tool::Tool;
 
@@ -22,6 +22,7 @@ pub struct State {
 	view_offset_temp_x: isize,
 	view_offset_temp_y: isize,
 	button_bar: ButtonBar,
+	tool_bar: ToolBar,
 	bottom_scroll: ScrollBar,
 	side_scroll: ScrollBar,
 	buffer: Buffer,
@@ -32,18 +33,11 @@ pub struct State {
 
 fn tool_pen(state: &mut State) -> Result<(), Error> {
 	state.current_tool = Tool::Pen;
-	state
-		.button_bar
-		.set(8, BarElement::Text(Cow::Borrowed("Pen")));
-
 	Ok(())
 }
 
 fn tool_erase(state: &mut State) -> Result<(), Error> {
 	state.current_tool = Tool::Erase;
-	state
-		.button_bar
-		.set(8, BarElement::Text(Cow::Borrowed("Erase")));
 	Ok(())
 }
 
@@ -58,9 +52,6 @@ impl State {
 			BarElement::Text(Cow::Borrowed("    ")),
 			BarElement::Button(Cow::Borrowed("⚪"), tool_erase),
 			BarElement::Text(Cow::Borrowed("    ")),
-			BarElement::Text(Cow::Borrowed("Current Tool:")),
-			BarElement::Text(Cow::Borrowed(" ")),
-			BarElement::Text(Cow::Borrowed("None")),
 		];
 
 		Self {
@@ -72,6 +63,7 @@ impl State {
 			view_offset_temp_x: 0,
 			view_offset_temp_y: 0,
 			button_bar: ButtonBar::new(default_buttons),
+			tool_bar: ToolBar,
 			bottom_scroll: ScrollBar { vertical: false },
 			side_scroll: ScrollBar { vertical: true },
 			buffer: Buffer::new(),
@@ -90,12 +82,14 @@ impl State {
 
 		self.button_bar.render(w)?;
 
+		self.tool_bar.render(w, &self.current_tool)?;
+
 		self.buffer.render(
 			w,
 			view_offset_x,
 			view_offset_y,
 			self.size_x - 1,
-			self.size_y - 3,
+			self.size_y - 4,
 		)?;
 
 		queue!(w, MoveToNextLine(1))?;
@@ -108,14 +102,14 @@ impl State {
 			self.size_x - 1,
 		)?;
 
-		queue!(w, MoveTo(self.size_x - 1, 1))?;
+		queue!(w, MoveTo(self.size_x - 1, 2))?;
 
 		self.side_scroll.render(
 			w,
 			view_offset_y,
-			self.size_y - 2,
+			self.size_y - 3,
 			self.buffer.max_dimensions().1,
-			self.size_y - 2,
+			self.size_y - 3,
 		)?;
 
 		w.flush()?;
@@ -195,23 +189,17 @@ impl State {
 				f(self)?;
 			}
 		}
+		else if y == 1 {
+		}
 		else if y < self.size_y - 2 {
-			match self.current_tool {
-				Tool::None => (),
-				Tool::Pen => self.buffer.write(
-					'█',
-					view_offset_x + x as usize,
-					view_offset_y + (y - 1) as usize,
-					false,
-				),
-				Tool::Erase => self.buffer.write(
-					' ',
-					view_offset_x + x as usize,
-					view_offset_y + (y - 1) as usize,
-					true,
-				),
-				Tool::Text => todo!(),
-			}
+			let y = y - 2;
+			self.current_tool.left_mouse_down_event(
+				&mut self.buffer,
+				x,
+				y,
+				view_offset_x,
+				view_offset_y,
+			)?;
 		}
 		Ok(())
 	}
@@ -238,23 +226,17 @@ impl State {
 		let (view_offset_x, view_offset_y) = self.view_offset();
 		if y == 0 {
 		}
+		else if y == 1 {
+		}
 		else if y < self.size_y - 2 {
-			match self.current_tool {
-				Tool::None => (),
-				Tool::Pen => self.buffer.write(
-					'█',
-					view_offset_x + x as usize,
-					view_offset_y + (y - 1) as usize,
-					false,
-				),
-				Tool::Erase => self.buffer.write(
-					' ',
-					view_offset_x + x as usize,
-					view_offset_y + (y - 1) as usize,
-					true,
-				),
-				Tool::Text => todo!(),
-			}
+			let y = y - 2;
+			self.current_tool.left_mouse_drag_event(
+				&mut self.buffer,
+				x,
+				y,
+				view_offset_x,
+				view_offset_y,
+			)?;
 		}
 		Ok(())
 	}

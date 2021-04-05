@@ -11,6 +11,7 @@ use std::io::Write;
 
 use crate::error::Error;
 use crate::state::State;
+use crate::tool::Tool;
 
 pub enum BarElement {
 	Divider,
@@ -128,6 +129,18 @@ impl ScrollBar {
 			}
 		}
 
+		Ok(())
+	}
+}
+
+pub struct ToolBar;
+
+impl ToolBar {
+	pub fn render(&self, w: &mut impl Write, tool: &Tool) -> Result<(), Error> {
+		let s = format!("Current tool: {}", tool.tool_name());
+		queue!(w, Print(s))?;
+		queue!(w, Clear(ClearType::UntilNewLine))?;
+		queue!(w, MoveToNextLine(1))?;
 		Ok(())
 	}
 }
