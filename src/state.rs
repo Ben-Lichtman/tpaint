@@ -61,6 +61,7 @@ impl State {
 
 	pub fn reset_current_mouse_element(&mut self) {
 		self.current_mouse_element = CurrentElement::None;
+		self.buffer.new_tool();
 	}
 
 	pub fn set_buffer_view_offset_x(&mut self, offset: usize) {
@@ -71,7 +72,10 @@ impl State {
 		self.buffer.set_view_offset_y(offset);
 	}
 
-	pub fn set_buffer_tool(&mut self, tool: ToolSelect) { self.buffer.set_tool(tool); }
+	pub fn set_buffer_tool(&mut self, tool: ToolSelect) {
+		self.buffer.set_tool(tool);
+		self.buffer.new_tool();
+	}
 
 	pub fn exit(&mut self) { self.should_exit = true }
 

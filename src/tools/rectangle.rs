@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEventKind};
 
 use std::convert::TryFrom;
 
-use crate::{elements::buffer::Buffer, state::State, tools::Tool};
+use crate::{state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Rectangle {
@@ -12,12 +12,7 @@ pub struct Rectangle {
 }
 
 impl Tool for Rectangle {
-	fn mouse_event(
-		&mut self,
-		x: isize,
-		y: isize,
-		kind: MouseEventKind,
-	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
 		match kind {
 			MouseEventKind::Down(_) => {
 				if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
@@ -25,35 +20,31 @@ impl Tool for Rectangle {
 						self.start = (x, y);
 						self.end = (x, y);
 						self.started = true;
-						(|_| (), |_| ())
+						|_| ()
 					}
 					else {
 						// Edge case - dragged off edge then released mouse
 						self.end = (x, y);
-						(|_| (), |_| ())
+						|_| ()
 					}
 				}
 				else {
-					(|_| (), |_| ())
+					|_| ()
 				}
 			}
 			MouseEventKind::Drag(_) => {
 				if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
 					self.end = (x, y);
 				}
-				(|_| (), |_| ())
+				|_| ()
 			}
-			MouseEventKind::Up(_) => (
-				|state| state.reset_current_mouse_element(),
-				|buffer| buffer.finish_tool(),
-			),
-			_ => (|_| (), |_| ()),
+			MouseEventKind::Up(_) => |state| state.reset_current_mouse_element(),
+
+			_ => |_| (),
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
-		(|_| (), |_| ())
-	}
+	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State) { |_| () }
 
 	fn render(&self) -> Vec<(usize, usize, char)> {
 		if !self.started {

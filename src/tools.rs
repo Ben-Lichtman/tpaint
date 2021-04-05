@@ -11,14 +11,9 @@ use crossterm::event::{KeyEvent, MouseEventKind};
 use crate::{elements::buffer::Buffer, state::State};
 
 pub trait Tool {
-	fn mouse_event(
-		&mut self,
-		x: isize,
-		y: isize,
-		kind: MouseEventKind,
-	) -> (fn(state: &mut State), fn(buffer: &mut Buffer));
+	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State);
 
-	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer));
+	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State);
 
 	fn render(&self) -> Vec<(usize, usize, char)>;
 

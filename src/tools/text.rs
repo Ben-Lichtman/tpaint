@@ -13,12 +13,7 @@ pub struct Text {
 }
 
 impl Tool for Text {
-	fn mouse_event(
-		&mut self,
-		x: isize,
-		y: isize,
-		kind: MouseEventKind,
-	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
 		match kind {
 			MouseEventKind::Down(_) => {
 				if !self.in_progress {
@@ -27,57 +22,50 @@ impl Tool for Text {
 						self.y = y;
 						self.in_progress = true;
 					}
-					(|_| (), |_| ())
+					|_| ()
 				}
 				else {
 					self.in_progress = false;
-					(
-						|state| state.reset_current_mouse_element(),
-						|buffer| buffer.finish_tool(),
-					)
+
+					|state| state.reset_current_mouse_element()
 				}
 			}
-			_ => (|_| (), |_| ()),
+			_ => |_| (),
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State) {
 		match event {
 			KeyEvent {
 				code: KeyCode::Esc,
 				modifiers: _,
 			} => {
 				self.in_progress = false;
-				(
-					|state| state.reset_current_mouse_element(),
-					|buffer| buffer.finish_tool(),
-				)
+				|state| state.reset_current_mouse_element()
 			}
 			KeyEvent {
 				code: KeyCode::Backspace,
 				modifiers: _,
 			} => {
 				self.text.pop();
-				(|_| (), |_| ())
+				|_| ()
 			}
 			KeyEvent {
 				code: KeyCode::Enter,
 				modifiers: _,
 			} => {
 				self.in_progress = false;
-				(
-					|state| state.reset_current_mouse_element(),
-					|buffer| buffer.finish_tool(),
-				)
+
+				|state| state.reset_current_mouse_element()
 			}
 			KeyEvent {
 				code: KeyCode::Char(c),
 				modifiers: _,
 			} => {
 				self.text.push(c);
-				(|_| (), |_| ())
+				|_| ()
 			}
-			_ => (|_| (), |_| ()),
+			_ => |_| (),
 		}
 	}
 

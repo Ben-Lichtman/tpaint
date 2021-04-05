@@ -2,7 +2,7 @@ use crossterm::event::{KeyEvent, MouseEventKind};
 
 use std::convert::TryFrom;
 
-use crate::{elements::buffer::Buffer, state::State, tools::Tool};
+use crate::{state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Erase {
@@ -10,31 +10,21 @@ pub struct Erase {
 }
 
 impl Tool for Erase {
-	fn mouse_event(
-		&mut self,
-		x: isize,
-		y: isize,
-		kind: MouseEventKind,
-	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
 		if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
 			self.points.push((x, y));
 		}
 
 		// Finish tool when mouse releases
 		if let MouseEventKind::Up(_) = kind {
-			(
-				|state| state.reset_current_mouse_element(),
-				|buffer| buffer.finish_tool(),
-			)
+			|state| state.reset_current_mouse_element()
 		}
 		else {
-			(|_| (), |_| ())
+			|_| ()
 		}
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
-		(|_| (), |_| ())
-	}
+	fn key_event(&mut self, event: KeyEvent) -> fn(state: &mut State) { |_| () }
 
 	fn render(&self) -> Vec<(usize, usize, char)> {
 		self.points

@@ -24,7 +24,6 @@ pub struct Buffer {
 	mouse_right_view_offset: (usize, usize),
 	mouse_right_start: (u16, u16),
 	current_tool_selection: ToolSelect,
-	current_tool: Box<dyn Tool>,
 	previous_tools: Vec<Box<dyn Tool>>,
 }
 
@@ -40,18 +39,10 @@ impl Buffer {
 			mouse_right_view_offset: (0, 0),
 			mouse_right_start: (0, 0),
 			current_tool_selection: ToolSelect::None,
-			current_tool: ToolSelect::None.to_tool(),
-			previous_tools: Vec::new(),
+			previous_tools: vec![ToolSelect::None.to_tool()],
 		};
 		new.resize_event(x, y);
 		new
-	}
-
-	pub fn finish_tool(&mut self) {
-		self.previous_tools.push(replace(
-			&mut self.current_tool,
-			self.current_tool_selection.to_tool(),
-		))
 	}
 
 	pub fn get_parameters(&self) -> ((usize, usize), (usize, usize), (usize, usize)) {
@@ -59,7 +50,6 @@ impl Buffer {
 		let mut max_y = 0;
 		self.previous_tools
 			.iter()
-			.chain(once(&self.current_tool))
 			.map(|tool| tool.render())
 			.flatten()
 			.for_each(|(x, y, _)| {
@@ -80,10 +70,12 @@ impl Buffer {
 
 	pub fn set_view_offset_y(&mut self, offset: usize) { self.view_offset_y = offset }
 
-	pub fn set_tool(&mut self, tool: ToolSelect) {
-		self.current_tool_selection = tool;
-		self.finish_tool();
+	pub fn new_tool(&mut self) {
+		self.previous_tools
+			.push(self.current_tool_selection.to_tool());
 	}
+
+	pub fn set_tool(&mut self, tool: ToolSelect) { self.current_tool_selection = tool; }
 
 	pub fn render_to_file(&self, file: &Path) -> String {
 		let mut buffer = Vec::new();
@@ -91,7 +83,6 @@ impl Buffer {
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.chain(once(&self.current_tool))
 			.map(|tool| tool.render())
 			.flatten()
 			.for_each(|(x, y, c)| {
@@ -150,10 +141,9 @@ impl Element for Buffer {
 					let global_x = self.view_offset_x as isize + x as isize - self.x as isize;
 					let global_y = self.view_offset_y as isize + y as isize - self.y as isize;
 
-					// If finished push to stack
-					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
-					b(self);
-					Box::new(s)
+					let current_tool = self.previous_tools.last_mut().unwrap();
+
+					Box::new(current_tool.mouse_event(global_x, global_y, kind))
 				}
 				MouseButton::Right => {
 					self.mouse_right_start = (x, y);
@@ -172,10 +162,9 @@ impl Element for Buffer {
 					let global_x = self.view_offset_x as isize + x as isize - self.x as isize;
 					let global_y = self.view_offset_y as isize + y as isize - self.y as isize;
 
-					// If finished push to stack
-					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
-					b(self);
-					Box::new(s)
+					let current_tool = self.previous_tools.last_mut().unwrap();
+
+					Box::new(current_tool.mouse_event(global_x, global_y, kind))
 				}
 				MouseButton::Right => {
 					let (start_x, start_y) = self.mouse_right_start;
@@ -203,10 +192,9 @@ impl Element for Buffer {
 					let global_x = self.view_offset_x as isize + x as isize - self.x as isize;
 					let global_y = self.view_offset_y as isize + y as isize - self.y as isize;
 
-					// If finished push to stack
-					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
-					b(self);
-					Box::new(s)
+					let current_tool = self.previous_tools.last_mut().unwrap();
+
+					Box::new(current_tool.mouse_event(global_x, global_y, kind))
 				}
 				MouseButton::Right => Box::new(|_| ()),
 				_ => Box::new(|_| ()),
@@ -216,9 +204,9 @@ impl Element for Buffer {
 	}
 
 	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> {
-		let (s, b) = self.current_tool.key_event(event);
-		b(self);
-		Box::new(s)
+		let current_tool = self.previous_tools.last_mut().unwrap();
+
+		Box::new(current_tool.key_event(event))
 	}
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
@@ -236,7 +224,6 @@ impl Element for Buffer {
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.chain(once(&self.current_tool))
 			.map(|tool| tool.render_bounded(min_x, max_x, min_y, max_y))
 			.flatten()
 			.for_each(|(x, y, c)| {

@@ -1,23 +1,16 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use crate::{elements::buffer::Buffer, state::State, tools::Tool};
+use crate::{state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct None;
 
 impl Tool for None {
-	fn mouse_event(
-		&mut self,
-		x: isize,
-		y: isize,
-		kind: MouseEventKind,
-	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
-		(|state| state.reset_current_mouse_element(), |_| ())
+	fn mouse_event(&mut self, _: isize, _: isize, _: MouseEventKind) -> fn(state: &mut State) {
+		|state| state.reset_current_mouse_element()
 	}
 
-	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
-		(|_| (), |_| ())
-	}
+	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
 
 	fn render(&self) -> Vec<(usize, usize, char)> { Vec::new() }
 
