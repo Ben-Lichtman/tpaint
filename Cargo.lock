@@ -259,7 +259,7 @@ dependencies = [
 
 [[package]]
 name = "tpaint"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "bitflags",
  "crossterm",

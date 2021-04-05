@@ -8,7 +8,7 @@ use crate::{buffer::Buffer, state::State, tools::Tool};
 pub struct Text {
 	x: usize,
 	y: usize,
-	text: String,
+	text: Vec<String>,
 	in_progress: bool,
 	finished: bool,
 }
@@ -50,22 +50,34 @@ impl Tool for Text {
 				code: KeyCode::Backspace,
 				modifiers: _,
 			} => {
-				self.text.pop();
+				if let Some(line) = self.text.last_mut() {
+					if line.len() == 0 {
+						self.text.pop();
+					}
+					else {
+						line.pop();
+					}
+				}
 				|_| ()
 			}
 			KeyEvent {
 				code: KeyCode::Enter,
 				modifiers: _,
 			} => {
-				self.in_progress = false;
-				self.finished = true;
-				|state| state.reset_current_mouse_element()
+				self.text.push(String::new());
+				|_| ()
 			}
 			KeyEvent {
 				code: KeyCode::Char(c),
 				modifiers: _,
 			} => {
-				self.text.push(c);
+				if let Some(line) = self.text.last_mut() {
+					line.push(c);
+				}
+				else {
+					self.text.push(String::from(c))
+				}
+
 				|_| ()
 			}
 			_ => |_| (),
@@ -73,20 +85,29 @@ impl Tool for Text {
 	}
 
 	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> {
+		let longest_line = self.text.iter().map(|line| line.len()).max().unwrap_or(0);
 		Some((
 			self.x,
-			self.x + self.text.chars().count(),
+			self.x + longest_line,
 			self.y,
-			self.y + 1,
+			self.y + self.text.len(),
 		))
 	}
 
 	fn render(&self, buffer: &mut Buffer, _: bool) {
-		self.text
-			.chars()
-			.enumerate()
-			.map(|(n, c)| (self.x + n, self.y, c))
-			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
+		self.text.iter().enumerate().for_each(|(y, line)| {
+			line.chars()
+				.enumerate()
+				.map(|(x, c)| (self.x + x, self.y + y, c))
+				.for_each(|(x, y, c)| buffer.render_point(x, y, c));
+		});
+		if self.in_progress {
+			buffer.render_point(
+				self.x + self.text.last().map(|l| l.len()).unwrap_or(0),
+				self.y + self.text.len().saturating_sub(1),
+				'<',
+			)
+		}
 	}
 
 	fn render_bounded(
@@ -98,14 +119,19 @@ impl Tool for Text {
 		buffer: &mut Buffer,
 		_: bool,
 	) {
-		if min_y <= self.y && self.y < max_y {
-			self.text
-				.chars()
-				.chain(if self.in_progress { Some('<') } else { None })
+		self.text.iter().enumerate().for_each(|(y, line)| {
+			line.chars()
 				.enumerate()
-				.filter(|(n, _)| min_x <= self.x + n && self.x + n < max_x)
-				.map(|(n, c)| (self.x + n, self.y, c))
-				.for_each(|(x, y, c)| buffer.render_point(x, y, c))
+				.map(|(x, c)| (self.x + x, self.y + y, c))
+				.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
+				.for_each(|(x, y, c)| buffer.render_point(x, y, c));
+		});
+		if self.in_progress {
+			buffer.render_point(
+				self.x + self.text.last().map(|l| l.len()).unwrap_or(0),
+				self.y + self.text.len().saturating_sub(1),
+				'<',
+			)
 		}
 	}
 
