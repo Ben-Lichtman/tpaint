@@ -17,7 +17,7 @@ pub trait Tool {
 
 	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)>;
 
-	fn render(&self, buffer: &mut Buffer);
+	fn render(&self, buffer: &mut Buffer, ascii_mode: bool);
 
 	fn render_bounded(
 		&self,

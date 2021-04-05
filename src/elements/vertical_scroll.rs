@@ -81,7 +81,7 @@ impl Element for VerticalScroll {
 
 	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
-	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer, ascii_mode: bool) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);
 		let view_start_bar = ((self.length as usize * self.view_start) / max_size) as u16;
 		let view_end_bar = ((self.length as usize * self.view_end) / max_size) as u16;

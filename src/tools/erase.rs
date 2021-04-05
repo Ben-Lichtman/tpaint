@@ -51,7 +51,7 @@ impl Tool for Erase {
 			})
 	}
 
-	fn render(&self, buffer: &mut Buffer) {
+	fn render(&self, buffer: &mut Buffer, ascii_mode: bool) {
 		self.points
 			.iter()
 			.copied()
@@ -71,7 +71,7 @@ impl Tool for Erase {
 			.iter()
 			.copied()
 			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
-			.map(|(x, y)| (x, y, '█'))
+			.map(|(x, y)| (x, y, ' '))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
 

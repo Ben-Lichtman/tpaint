@@ -41,7 +41,7 @@ impl Tool for Block {
 			})
 	}
 
-	fn render(&self, buffer: &mut Buffer) {
+	fn render(&self, buffer: &mut Buffer, ascii_mode: bool) {
 		self.chars
 			.iter()
 			.copied()

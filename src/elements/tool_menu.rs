@@ -15,6 +15,7 @@ enum MenuElement {
 	Divider,
 	Text(&'static str),
 	Tool(&'static str, ToolSelect),
+	Mode(&'static str),
 }
 
 impl MenuElement {
@@ -23,6 +24,7 @@ impl MenuElement {
 			Self::Divider => 3,
 			Self::Text(t) => UnicodeWidthStr::width(*t),
 			Self::Tool(t, _) => UnicodeWidthStr::width(*t),
+			Self::Mode(t) => UnicodeWidthStr::width(*t),
 		}
 	}
 
@@ -31,6 +33,7 @@ impl MenuElement {
 			Self::Divider => queue!(w, Print(" | "))?,
 			Self::Text(t) => queue!(w, Print(t))?,
 			Self::Tool(t, _) => queue!(w, Print(t))?,
+			Self::Mode(t) => queue!(w, Print(t))?,
 		}
 		Ok(())
 	}
@@ -52,9 +55,11 @@ impl ToolMenu {
 			length: 0,
 			elements: vec![
 				MenuElement::Text("tpaint "),
-				MenuElement::Tool("⚫", ToolSelect::Freehand),
+				MenuElement::Mode("(mode)"),
 				MenuElement::Divider,
-				MenuElement::Tool("⚪", ToolSelect::Erase),
+				MenuElement::Tool("$", ToolSelect::Freehand),
+				MenuElement::Divider,
+				MenuElement::Tool("&", ToolSelect::Erase),
 				MenuElement::Divider,
 				MenuElement::Tool("[]", ToolSelect::Rectangle),
 				MenuElement::Divider,
@@ -102,6 +107,11 @@ impl Element for ToolMenu {
 										state.set_workspace_tool(tool);
 									});
 								}
+								MenuElement::Mode(_) => {
+									return Box::new(move |state| {
+										state.change_mode();
+									});
+								}
 								_ => (),
 							}
 						}
@@ -118,7 +128,7 @@ impl Element for ToolMenu {
 
 	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
-	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer, ascii_mode: bool) -> Result<()> {
 		queue!(w, MoveTo(self.x, self.y))?;
 		self.elements
 			.iter()

@@ -32,6 +32,7 @@ pub struct State {
 	horizontal_scroll: HorizontalScroll,
 	elements: Vec<Box<dyn Element>>,
 	output_file: PathBuf,
+	ascii_mode: bool,
 }
 
 impl State {
@@ -50,6 +51,7 @@ impl State {
 			horizontal_scroll: HorizontalScroll::new(x, y),
 			elements: vec![Box::new(ToolMenu::new(x, y))],
 			output_file,
+			ascii_mode: false,
 		})
 	}
 
@@ -77,6 +79,8 @@ impl State {
 		self.workspace.new_tool();
 	}
 
+	pub fn change_mode(&mut self) { self.ascii_mode = !self.ascii_mode; }
+
 	pub fn exit(&mut self) { self.should_exit = true }
 
 	pub fn resize(&mut self, x: u16, y: u16) {
@@ -91,12 +95,12 @@ impl State {
 	}
 
 	pub fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
-		self.workspace.render(w, buffer)?;
-		self.vertical_scroll.render(w, buffer)?;
-		self.horizontal_scroll.render(w, buffer)?;
+		self.workspace.render(w, buffer, self.ascii_mode)?;
+		self.vertical_scroll.render(w, buffer, self.ascii_mode)?;
+		self.horizontal_scroll.render(w, buffer, self.ascii_mode)?;
 
 		for element in &self.elements {
-			element.render(w, buffer)?;
+			element.render(w, buffer, self.ascii_mode)?;
 		}
 
 		Ok(())
@@ -205,7 +209,7 @@ impl State {
 	}
 
 	fn save_file(&self) -> Result<()> {
-		let output = self.workspace.render_to_file();
+		let output = self.workspace.render_to_file(self.ascii_mode);
 		write(&self.output_file, output.as_bytes())?;
 		Ok(())
 	}

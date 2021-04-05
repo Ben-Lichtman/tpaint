@@ -14,7 +14,7 @@ impl Tool for None {
 
 	fn bounding_box(&self) -> Option<(usize, usize, usize, usize)> { Option::None }
 
-	fn render(&self, _: &mut Buffer) {}
+	fn render(&self, _: &mut Buffer, _: bool) {}
 
 	fn render_bounded(&self, _: usize, _: usize, _: usize, _: usize, _: &mut Buffer) {}
 

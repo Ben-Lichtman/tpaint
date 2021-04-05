@@ -126,7 +126,7 @@ impl Tool for Rectangle {
 		}
 	}
 
-	fn render(&self, buffer: &mut Buffer) {
+	fn render(&self, buffer: &mut Buffer, ascii_mode: bool) {
 		if !self.started {
 			return;
 		}

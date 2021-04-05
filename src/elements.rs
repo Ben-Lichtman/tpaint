@@ -18,5 +18,5 @@ pub trait Element {
 
 	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)>;
 
-	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()>;
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer, ascii_mode: bool) -> Result<()>;
 }

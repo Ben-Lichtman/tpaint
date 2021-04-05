@@ -95,13 +95,13 @@ impl Workspace {
 
 	pub fn set_tool(&mut self, tool: ToolSelect) { self.current_tool_selection = tool; }
 
-	pub fn render_to_file(&self) -> String {
+	pub fn render_to_file(&self, ascii_mode: bool) -> String {
 		let mut buffer = Buffer::new();
 
 		// Write to buffer in chronological order
 		self.previous_tools
 			.iter()
-			.for_each(|tool| tool.render(&mut buffer));
+			.for_each(|tool| tool.render(&mut buffer, ascii_mode));
 
 		// Convert each line to String and write out to file
 		buffer
@@ -223,7 +223,7 @@ impl Element for Workspace {
 		Box::new(current_tool.key_event(event))
 	}
 
-	fn render(&self, w: &mut Stdout, buffer: &mut Buffer) -> Result<()> {
+	fn render(&self, w: &mut Stdout, buffer: &mut Buffer, ascii_mode: bool) -> Result<()> {
 		let buffer_size_x = self.size_x as usize;
 		let buffer_size_y = self.size_y as usize;
 
