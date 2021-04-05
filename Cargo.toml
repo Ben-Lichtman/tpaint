@@ -1,9 +1,10 @@
 [package]
 name = "tpaint"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ben Lichtman"]
 edition = "2018"
 description = "Terminal based unicode and ascii diagrams and drawings"
+repository = "https://github.com/Ben-Lichtman/tpaint"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
