@@ -129,7 +129,7 @@ impl Element for ToolMenu {
 
 	fn key_event(&mut self, _: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
-	fn render(&self, w: &mut Stdout, buffer: &mut Buffer, ascii_mode: bool) -> Result<()> {
+	fn render(&self, w: &mut Stdout, _: &mut Buffer, ascii_mode: bool) -> Result<()> {
 		queue!(w, MoveTo(self.x, self.y))?;
 		self.elements
 			.iter()

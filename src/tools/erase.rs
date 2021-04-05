@@ -51,7 +51,7 @@ impl Tool for Erase {
 			})
 	}
 
-	fn render(&self, buffer: &mut Buffer, ascii_mode: bool) {
+	fn render(&self, buffer: &mut Buffer, _: bool) {
 		self.points
 			.iter()
 			.copied()
@@ -66,7 +66,7 @@ impl Tool for Erase {
 		min_y: usize,
 		max_y: usize,
 		buffer: &mut Buffer,
-		ascii_mode: bool,
+		_: bool,
 	) {
 		self.points
 			.iter()

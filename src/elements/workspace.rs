@@ -97,6 +97,7 @@ impl Workspace {
 
 	pub fn render_to_file(&self, ascii_mode: bool) -> String {
 		let mut buffer = Buffer::new();
+		buffer.new_frame();
 
 		// Write to buffer in chronological order
 		self.previous_tools
