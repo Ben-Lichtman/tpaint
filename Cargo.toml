@@ -1,7 +1,7 @@
 [package]
 name = "tpaint"
 version = "0.1.1"
-authors = ["Ben Lichtman"]
+authors = ["Ben-Lichtman"]
 edition = "2018"
 description = "Terminal based unicode and ascii diagrams and drawings"
 repository = "https://github.com/Ben-Lichtman/tpaint"
