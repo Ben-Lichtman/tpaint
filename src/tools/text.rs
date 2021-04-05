@@ -54,6 +54,13 @@ impl Tool for Text {
 				)
 			}
 			KeyEvent {
+				code: KeyCode::Backspace,
+				modifiers: _,
+			} => {
+				self.text.pop();
+				(|_| (), |_| ())
+			}
+			KeyEvent {
 				code: KeyCode::Enter,
 				modifiers: _,
 			} => {
