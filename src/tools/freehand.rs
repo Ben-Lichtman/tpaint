@@ -39,4 +39,19 @@ impl Tool for Freehand {
 			.map(|(x, y)| (x, y, '█'))
 			.collect()
 	}
+
+	fn render_bounded(
+		&self,
+		min_x: usize,
+		max_x: usize,
+		min_y: usize,
+		max_y: usize,
+	) -> Vec<(usize, usize, char)> {
+		self.points
+			.iter()
+			.copied()
+			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
+			.map(|(x, y)| (x, y, '█'))
+			.collect()
+	}
 }

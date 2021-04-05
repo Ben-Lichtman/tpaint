@@ -1,5 +1,6 @@
 use crossterm::{
 	event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind},
+	queue,
 	terminal::size,
 };
 
@@ -55,6 +56,14 @@ impl State {
 		self.current_mouse_element = CurrentElement::None;
 	}
 
+	pub fn set_buffer_view_offset_x(&mut self, offset: usize) {
+		self.buffer.set_view_offset_x(offset);
+	}
+
+	pub fn set_buffer_view_offset_y(&mut self, offset: usize) {
+		self.buffer.set_view_offset_y(offset);
+	}
+
 	pub fn exit(&mut self) { self.should_exit = true }
 
 	pub fn resize(&mut self, x: u16, y: u16) {
@@ -75,6 +84,7 @@ impl State {
 		for element in &self.elements {
 			element.render(w)?;
 		}
+
 		Ok(())
 	}
 

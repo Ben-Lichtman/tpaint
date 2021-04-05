@@ -13,7 +13,7 @@ pub trait Element {
 
 	fn coord_within(&self, x: u16, y: u16) -> bool;
 
-	fn mouse_event(&mut self, event: MouseEvent) -> fn(state: &mut State);
+	fn mouse_event(&mut self, event: MouseEvent) -> Box<dyn Fn(&mut State)>;
 
 	fn render(&self, w: &mut Stdout) -> Result<()>;
 }

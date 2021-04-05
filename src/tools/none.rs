@@ -16,4 +16,8 @@ impl Tool for None {
 	}
 
 	fn render(&self) -> Vec<(usize, usize, char)> { Vec::new() }
+
+	fn render_bounded(&self, _: usize, _: usize, _: usize, _: usize) -> Vec<(usize, usize, char)> {
+		Vec::new()
+	}
 }

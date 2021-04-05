@@ -39,8 +39,8 @@ impl Buffer {
 			view_offset_y: 0,
 			mouse_right_view_offset: (0, 0),
 			mouse_right_start: (0, 0),
-			current_tool_selection: ToolSelect::Freehand,
-			current_tool: ToolSelect::Freehand.to_tool(),
+			current_tool_selection: ToolSelect::Rectangle,
+			current_tool: ToolSelect::Rectangle.to_tool(),
 			previous_tools: Vec::new(),
 		};
 		new.resize_event(x, y);
@@ -75,6 +75,10 @@ impl Buffer {
 			(max_x, max_y),
 		)
 	}
+
+	pub fn set_view_offset_x(&mut self, offset: usize) { self.view_offset_x = offset }
+
+	pub fn set_view_offset_y(&mut self, offset: usize) { self.view_offset_y = offset }
 }
 
 impl Element for Buffer {
@@ -97,13 +101,13 @@ impl Element for Buffer {
 			row: y,
 			..
 		}: MouseEvent,
-	) -> fn(state: &mut State) {
+	) -> Box<dyn Fn(&mut State)> {
 		match kind {
 			MouseEventKind::Down(button) => match button {
 				MouseButton::Left => {
 					// May rarely be out of bounds when mouse is dragged off the terminal, button let go of, and then terminal clicked on again
 					if !self.coord_within(x, y) {
-						return |_| ();
+						return Box::new(|_| ());
 					}
 
 					let global_x = self.view_offset_x as isize + x as isize - self.x as isize;
@@ -112,20 +116,20 @@ impl Element for Buffer {
 					// If finished push to stack
 					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
 					b(self);
-					s
+					Box::new(s)
 				}
 				MouseButton::Right => {
 					self.mouse_right_start = (x, y);
 					self.mouse_right_view_offset = (self.view_offset_x, self.view_offset_y);
-					|_| ()
+					Box::new(|_| ())
 				}
-				_ => |_| (),
+				_ => Box::new(|_| ()),
 			},
 			MouseEventKind::Drag(button) => match button {
 				MouseButton::Left => {
 					// Ignore out of bounds drag until cursor re-enters buffer
 					if !self.coord_within(x, y) {
-						return |_| ();
+						return Box::new(|_| ());
 					}
 
 					let global_x = self.view_offset_x as isize + x as isize - self.x as isize;
@@ -134,7 +138,7 @@ impl Element for Buffer {
 					// If finished push to stack
 					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
 					b(self);
-					s
+					Box::new(s)
 				}
 				MouseButton::Right => {
 					let (start_x, start_y) = self.mouse_right_start;
@@ -153,9 +157,9 @@ impl Element for Buffer {
 
 					self.view_offset_y = usize::try_from(new_view_y).unwrap_or(0);
 
-					|_| ()
+					Box::new(|_| ())
 				}
-				_ => |_| (),
+				_ => Box::new(|_| ()),
 			},
 			MouseEventKind::Up(button) => match button {
 				MouseButton::Left => {
@@ -165,12 +169,12 @@ impl Element for Buffer {
 					// If finished push to stack
 					let (s, b) = self.current_tool.mouse_event(global_x, global_y, kind);
 					b(self);
-					s
+					Box::new(s)
 				}
-				MouseButton::Right => |_| (),
-				_ => |_| (),
+				MouseButton::Right => Box::new(|_| ()),
+				_ => Box::new(|_| ()),
 			},
-			_ => |_| (),
+			_ => Box::new(|_| ()),
 		}
 	}
 
@@ -190,10 +194,10 @@ impl Element for Buffer {
 		self.previous_tools
 			.iter()
 			.chain(once(&self.current_tool))
-			.map(|tool| tool.render())
+			.map(|tool| tool.render_bounded(min_x, max_x, min_y, max_y))
 			.flatten()
-			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.for_each(|(x, y, c)| {
+				debug_assert!((min_x <= x && x < max_x) && (min_y <= y && y < max_y));
 				let x_in_buffer = x - self.view_offset_x;
 				let y_in_buffer = y - self.view_offset_y;
 				buffer[y_in_buffer * buffer_size_x + x_in_buffer] = c;

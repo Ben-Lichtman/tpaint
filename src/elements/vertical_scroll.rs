@@ -1,4 +1,9 @@
-use crossterm::{cursor::MoveTo, event::MouseEvent, queue, style::Print};
+use crossterm::{
+	cursor::MoveTo,
+	event::{MouseButton, MouseEvent, MouseEventKind},
+	queue,
+	style::Print,
+};
 
 use std::io::Stdout;
 
@@ -46,7 +51,33 @@ impl Element for VerticalScroll {
 		x == self.x && (self.y <= y && y < self.y + self.length)
 	}
 
-	fn mouse_event(&mut self, event: MouseEvent) -> fn(state: &mut State) { |_| () }
+	fn mouse_event(
+		&mut self,
+		MouseEvent { kind, row: y, .. }: MouseEvent,
+	) -> Box<dyn Fn(&mut State)> {
+		match kind {
+			MouseEventKind::Down(button) => match button {
+				MouseButton::Left => {
+					let cursor_offset = y.saturating_sub(self.y);
+					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
+
+					Box::new(move |state| state.set_buffer_view_offset_y(midpoint))
+				}
+				_ => Box::new(|_| ()),
+			},
+			MouseEventKind::Drag(button) => match button {
+				MouseButton::Left => {
+					let cursor_offset = y.saturating_sub(self.y);
+					let midpoint = (self.max_size * cursor_offset as usize) / self.length as usize;
+
+					Box::new(move |state| state.set_buffer_view_offset_y(midpoint))
+				}
+				_ => Box::new(|_| ()),
+			},
+			MouseEventKind::Up(_) => Box::new(|state| state.reset_current_mouse_element()),
+			_ => Box::new(|_| ()),
+		}
+	}
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);
