@@ -259,7 +259,7 @@ dependencies = [
 
 [[package]]
 name = "tpaint"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "crossterm",
  "line_drawing",
