@@ -10,6 +10,7 @@ pub struct Text {
 	y: usize,
 	text: String,
 	in_progress: bool,
+	finished: bool,
 }
 
 impl Tool for Text {
@@ -26,6 +27,7 @@ impl Tool for Text {
 				}
 				else {
 					self.in_progress = false;
+					self.finished = true;
 
 					|state| state.reset_current_mouse_element()
 				}
@@ -41,6 +43,7 @@ impl Tool for Text {
 				modifiers: _,
 			} => {
 				self.in_progress = false;
+				self.finished = true;
 				|state| state.reset_current_mouse_element()
 			}
 			KeyEvent {
@@ -55,7 +58,7 @@ impl Tool for Text {
 				modifiers: _,
 			} => {
 				self.in_progress = false;
-
+				self.finished = true;
 				|state| state.reset_current_mouse_element()
 			}
 			KeyEvent {
@@ -104,4 +107,6 @@ impl Tool for Text {
 				.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 		}
 	}
+
+	fn complete(&self) -> bool { self.finished }
 }

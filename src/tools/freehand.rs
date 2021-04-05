@@ -8,6 +8,7 @@ use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Freehand {
+	started: bool,
 	points: Vec<(usize, usize)>,
 }
 
@@ -23,6 +24,7 @@ impl Tool for Freehand {
 				}
 			}
 			else {
+				self.started = true;
 				self.points.push((x, y));
 			}
 		}
@@ -72,4 +74,6 @@ impl Tool for Freehand {
 			.map(|(x, y)| (x, y, '█'))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
+
+	fn complete(&self) -> bool { self.started }
 }

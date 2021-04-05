@@ -17,4 +17,6 @@ impl Tool for None {
 	fn render(&self, _: &mut Buffer) {}
 
 	fn render_bounded(&self, _: usize, _: usize, _: usize, _: usize, _: &mut Buffer) {}
+
+	fn complete(&self) -> bool { false }
 }

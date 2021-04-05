@@ -9,6 +9,7 @@ pub struct Rectangle {
 	started: bool,
 	start: (usize, usize),
 	end: (usize, usize),
+	complete: bool,
 }
 
 impl Tool for Rectangle {
@@ -25,6 +26,7 @@ impl Tool for Rectangle {
 					else {
 						// Edge case - dragged off edge then released mouse
 						self.end = (x, y);
+						self.complete = true;
 						|_| ()
 					}
 				}
@@ -35,6 +37,7 @@ impl Tool for Rectangle {
 			MouseEventKind::Drag(_) => {
 				if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
 					self.end = (x, y);
+					self.complete = true;
 				}
 				|_| ()
 			}
@@ -113,4 +116,6 @@ impl Tool for Rectangle {
 			.map(|(x, y)| (x, y, '█'))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
+
+	fn complete(&self) -> bool { self.complete }
 }

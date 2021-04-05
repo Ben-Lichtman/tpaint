@@ -62,4 +62,6 @@ impl Tool for Block {
 			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
+
+	fn complete(&self) -> bool { true }
 }

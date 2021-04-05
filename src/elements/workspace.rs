@@ -84,6 +84,11 @@ impl Workspace {
 	pub fn set_view_offset_y(&mut self, offset: usize) { self.view_offset_y = offset }
 
 	pub fn new_tool(&mut self) {
+		if let Some(last) = self.previous_tools.last() {
+			if !last.complete() {
+				self.previous_tools.pop();
+			}
+		}
 		self.previous_tools
 			.push(self.current_tool_selection.to_tool());
 	}
@@ -109,6 +114,12 @@ impl Workspace {
 	pub fn add_file_block(&mut self, input_file: &Path) -> Result<()> {
 		self.previous_tools.push(Box::new(Block::new(input_file)?));
 		Ok(())
+	}
+
+	pub fn undo(&mut self) {
+		self.previous_tools.pop();
+		self.previous_tools.pop();
+		self.new_tool();
 	}
 }
 

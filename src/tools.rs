@@ -27,6 +27,8 @@ pub trait Tool {
 		max_y: usize,
 		buffer: &mut Buffer,
 	);
+
+	fn complete(&self) -> bool;
 }
 
 #[derive(Clone, Copy)]

@@ -123,6 +123,10 @@ impl State {
 							code: KeyCode::Char('s'),
 							modifiers: KeyModifiers::NONE,
 						} => self.save_file()?,
+						KeyEvent {
+							code: KeyCode::Char('z'),
+							modifiers: KeyModifiers::NONE,
+						} => self.workspace.undo(),
 						_ => (),
 					},
 					CurrentElement::Workspace => self.workspace.key_event(k)(self),

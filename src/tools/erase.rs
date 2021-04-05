@@ -1,27 +1,40 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
+use line_drawing::Bresenham;
+
 use std::convert::TryFrom;
 
 use crate::{buffer::Buffer, state::State, tools::Tool};
 
 #[derive(Default)]
 pub struct Erase {
+	started: bool,
 	points: Vec<(usize, usize)>,
 }
 
 impl Tool for Erase {
 	fn mouse_event(&mut self, x: isize, y: isize, kind: MouseEventKind) -> fn(state: &mut State) {
 		if let (Ok(x), Ok(y)) = (usize::try_from(x), usize::try_from(y)) {
-			self.points.push((x, y));
+			if let Some((old_x, old_y)) = self.points.last() {
+				for (x, y) in
+					Bresenham::new((*old_x as isize, *old_y as isize), (x as isize, y as isize))
+						.skip(1)
+				{
+					self.points.push((x as usize, y as usize));
+				}
+			}
+			else {
+				self.started = true;
+				self.points.push((x, y));
+			}
 		}
 
 		// Finish tool when mouse releases
 		if let MouseEventKind::Up(_) = kind {
-			|state| state.reset_current_mouse_element()
+			return |state| state.reset_current_mouse_element();
 		}
-		else {
-			|_| ()
-		}
+
+		|_| ()
 	}
 
 	fn key_event(&mut self, _: KeyEvent) -> fn(state: &mut State) { |_| () }
@@ -58,7 +71,9 @@ impl Tool for Erase {
 			.iter()
 			.copied()
 			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
-			.map(|(x, y)| (x, y, ' '))
+			.map(|(x, y)| (x, y, '█'))
 			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
 	}
+
+	fn complete(&self) -> bool { self.started }
 }
