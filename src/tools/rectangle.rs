@@ -1,4 +1,4 @@
-use crossterm::event::MouseEventKind;
+use crossterm::event::{KeyEvent, MouseEventKind};
 
 use std::convert::TryFrom;
 
@@ -49,6 +49,10 @@ impl Tool for Rectangle {
 			),
 			_ => (|_| (), |_| ()),
 		}
+	}
+
+	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+		(|_| (), |_| ())
 	}
 
 	fn render(&self) -> Vec<(usize, usize, char)> {

@@ -1,4 +1,4 @@
-use crossterm::event::MouseEventKind;
+use crossterm::event::{KeyEvent, MouseEventKind};
 
 use crate::{elements::buffer::Buffer, state::State, tools::Tool};
 
@@ -12,6 +12,10 @@ impl Tool for None {
 		y: isize,
 		kind: MouseEventKind,
 	) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
+		(|_| (), |_| ())
+	}
+
+	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer)) {
 		(|_| (), |_| ())
 	}
 

@@ -1,6 +1,6 @@
 use crossterm::{
 	cursor::MoveTo,
-	event::{MouseButton, MouseEvent, MouseEventKind},
+	event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
 	queue,
 	style::Print,
 };
@@ -80,6 +80,8 @@ impl Element for HorizontalScroll {
 			_ => Box::new(|_| ()),
 		}
 	}
+
+	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> { Box::new(|_| ()) }
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {
 		let max_size = self.max_size.max(self.view_end);

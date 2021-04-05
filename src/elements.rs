@@ -1,8 +1,9 @@
 pub mod buffer;
 pub mod horizontal_scroll;
+pub mod tool_menu;
 pub mod vertical_scroll;
 
-use crossterm::event::MouseEvent;
+use crossterm::event::{KeyEvent, MouseEvent};
 
 use std::io::Stdout;
 
@@ -14,6 +15,8 @@ pub trait Element {
 	fn coord_within(&self, x: u16, y: u16) -> bool;
 
 	fn mouse_event(&mut self, event: MouseEvent) -> Box<dyn Fn(&mut State)>;
+
+	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)>;
 
 	fn render(&self, w: &mut Stdout) -> Result<()>;
 }

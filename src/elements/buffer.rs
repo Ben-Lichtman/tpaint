@@ -1,6 +1,6 @@
 use crossterm::{
 	cursor::MoveTo,
-	event::{MouseButton, MouseEvent, MouseEventKind},
+	event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
 	queue,
 	style::Print,
 };
@@ -39,8 +39,8 @@ impl Buffer {
 			view_offset_y: 0,
 			mouse_right_view_offset: (0, 0),
 			mouse_right_start: (0, 0),
-			current_tool_selection: ToolSelect::Rectangle,
-			current_tool: ToolSelect::Rectangle.to_tool(),
+			current_tool_selection: ToolSelect::None,
+			current_tool: ToolSelect::None.to_tool(),
 			previous_tools: Vec::new(),
 		};
 		new.resize_event(x, y);
@@ -79,14 +79,19 @@ impl Buffer {
 	pub fn set_view_offset_x(&mut self, offset: usize) { self.view_offset_x = offset }
 
 	pub fn set_view_offset_y(&mut self, offset: usize) { self.view_offset_y = offset }
+
+	pub fn set_tool(&mut self, tool: ToolSelect) {
+		self.current_tool_selection = tool;
+		self.finish_tool();
+	}
 }
 
 impl Element for Buffer {
 	fn resize_event(&mut self, x: u16, y: u16) {
 		self.x = 0;
-		self.y = 1;
+		self.y = 2;
 		self.size_x = x - 1;
-		self.size_y = y - 2;
+		self.size_y = y - 3;
 	}
 
 	fn coord_within(&self, x: u16, y: u16) -> bool {
@@ -176,6 +181,12 @@ impl Element for Buffer {
 			},
 			_ => Box::new(|_| ()),
 		}
+	}
+
+	fn key_event(&mut self, event: KeyEvent) -> Box<dyn Fn(&mut State)> {
+		let (s, b) = self.current_tool.key_event(event);
+		b(self);
+		Box::new(s)
 	}
 
 	fn render(&self, w: &mut Stdout) -> Result<()> {

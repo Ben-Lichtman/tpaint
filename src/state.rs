@@ -8,10 +8,11 @@ use std::io::Stdout;
 
 use crate::{
 	elements::{
-		buffer::Buffer, horizontal_scroll::HorizontalScroll, vertical_scroll::VerticalScroll,
-		Element,
+		buffer::Buffer, horizontal_scroll::HorizontalScroll, tool_menu::ToolMenu,
+		vertical_scroll::VerticalScroll, Element,
 	},
 	error::Result,
+	tools::ToolSelect,
 };
 
 pub enum CurrentElement {
@@ -42,7 +43,7 @@ impl State {
 			vertical_scroll: VerticalScroll::new(x, y),
 			horizontal_scroll: HorizontalScroll::new(x, y),
 			current_mouse_element: CurrentElement::None,
-			elements: vec![],
+			elements: vec![Box::new(ToolMenu::new(x, y))],
 		}
 	}
 
@@ -63,6 +64,8 @@ impl State {
 	pub fn set_buffer_view_offset_y(&mut self, offset: usize) {
 		self.buffer.set_view_offset_y(offset);
 	}
+
+	pub fn set_buffer_tool(&mut self, tool: ToolSelect) { self.buffer.set_tool(tool); }
 
 	pub fn exit(&mut self) { self.should_exit = true }
 
@@ -99,7 +102,13 @@ impl State {
 					code: KeyCode::Char('q'),
 					modifiers: KeyModifiers::NONE,
 				} => self.exit(),
-				_ => (),
+				_ => match self.current_mouse_element {
+					CurrentElement::None => {}
+					CurrentElement::Buffer => self.buffer.key_event(k)(self),
+					CurrentElement::VerticalScroll => self.vertical_scroll.key_event(k)(self),
+					CurrentElement::HorizontalScroll => self.horizontal_scroll.key_event(k)(self),
+					CurrentElement::Element(index) => self.elements[index].key_event(k)(self),
+				},
 			},
 
 			Event::Mouse(event) => {

@@ -1,8 +1,9 @@
 mod freehand;
 mod none;
 mod rectangle;
+mod text;
 
-use crossterm::event::MouseEventKind;
+use crossterm::event::{KeyEvent, MouseEventKind};
 
 use crate::{elements::buffer::Buffer, state::State};
 
@@ -13,6 +14,8 @@ pub trait Tool {
 		y: isize,
 		kind: MouseEventKind,
 	) -> (fn(state: &mut State), fn(buffer: &mut Buffer));
+
+	fn key_event(&mut self, event: KeyEvent) -> (fn(state: &mut State), fn(buffer: &mut Buffer));
 
 	fn render(&self) -> Vec<(usize, usize, char)>;
 
@@ -25,10 +28,12 @@ pub trait Tool {
 	) -> Vec<(usize, usize, char)>;
 }
 
+#[derive(Clone, Copy)]
 pub enum ToolSelect {
 	None,
 	Freehand,
 	Rectangle,
+	Text,
 }
 
 impl ToolSelect {
@@ -37,6 +42,16 @@ impl ToolSelect {
 			ToolSelect::None => Box::new(none::None::default()),
 			ToolSelect::Freehand => Box::new(freehand::Freehand::default()),
 			ToolSelect::Rectangle => Box::new(rectangle::Rectangle::default()),
+			ToolSelect::Text => Box::new(text::Text::default()),
+		}
+	}
+
+	pub fn name(&self) -> &'static str {
+		match self {
+			ToolSelect::None => "None",
+			ToolSelect::Freehand => "Freehand",
+			ToolSelect::Rectangle => "Rectangle",
+			ToolSelect::Text => "Text",
 		}
 	}
 }
