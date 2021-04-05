@@ -1,6 +1,6 @@
 [package]
 name = "tpaint"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Ben-Lichtman"]
 edition = "2018"
 description = "Terminal based unicode and ascii diagrams and drawings"
