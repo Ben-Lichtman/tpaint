@@ -1,6 +1,8 @@
 use crossterm::event::{KeyEvent, MouseEventKind};
 
-use std::convert::TryFrom;
+use bitflags::bitflags;
+
+use std::{convert::TryFrom, iter::once};
 
 use crate::{buffer::Buffer, state::State, tools::Tool};
 
@@ -10,6 +12,65 @@ pub struct Rectangle {
 	start: (usize, usize),
 	end: (usize, usize),
 	complete: bool,
+}
+
+bitflags! {
+	struct BoxDir: u8 {
+		const NONE = 0b0000;
+		const UP = 0b0001;
+		const DOWN = 0b0010;
+		const LEFT = 0b0100;
+		const RIGHT = 0b1000;
+	}
+}
+
+impl BoxDir {
+	fn from_char(c: char) -> Self {
+		match c {
+			'╋' => Self::UP | Self::DOWN | Self::LEFT | Self::RIGHT,
+
+			'┳' => Self::DOWN | Self::LEFT | Self::RIGHT,
+			'┻' => Self::UP | Self::LEFT | Self::RIGHT,
+			'┣' => Self::UP | Self::DOWN | Self::RIGHT,
+			'┫' => Self::UP | Self::DOWN | Self::LEFT,
+
+			'┛' => Self::UP | Self::LEFT,
+			'┗' => Self::UP | Self::RIGHT,
+			'┓' => Self::DOWN | Self::LEFT,
+			'┏' => Self::DOWN | Self::RIGHT,
+
+			'┃' => Self::UP | Self::DOWN,
+			'━' => Self::LEFT | Self::RIGHT,
+
+			_ => Self::NONE,
+		}
+	}
+
+	fn to_char(self) -> char {
+		match (
+			self.contains(Self::UP),
+			self.contains(Self::DOWN),
+			self.contains(Self::LEFT),
+			self.contains(Self::RIGHT),
+		) {
+			(true, true, true, true) => '╋',
+
+			(false, true, true, true) => '┳',
+			(true, false, true, true) => '┻',
+			(true, true, false, true) => '┣',
+			(true, true, true, false) => '┫',
+
+			(true, false, true, false) => '┛',
+			(true, false, false, true) => '┗',
+			(false, true, true, false) => '┓',
+			(false, true, false, true) => '┏',
+
+			(true, true, false, false) => '┃',
+			(false, false, true, true) => '━',
+
+			_ => ' ',
+		}
+	}
 }
 
 impl Tool for Rectangle {
@@ -70,21 +131,34 @@ impl Tool for Rectangle {
 			return;
 		}
 
-		let min_x = self.start.0.min(self.end.0);
-		let max_x = self.start.0.max(self.end.0);
-		let min_y = self.start.1.min(self.end.1);
-		let max_y = self.start.1.max(self.end.1);
-		// Top
-		let top = (min_x..=max_x).map(|x| (x, min_y));
-		let bottom = (min_x..=max_x).map(|x| (x, max_y));
-		let left = (min_y + 1..max_y).map(|y| (min_x, y));
-		let right = (min_y + 1..max_y).map(|y| (max_x, y));
+		let rect_min_x = self.start.0.min(self.end.0);
+		let rect_max_x = self.start.0.max(self.end.0);
+		let rect_min_y = self.start.1.min(self.end.1);
+		let rect_max_y = self.start.1.max(self.end.1);
 
-		top.chain(bottom)
-			.chain(left)
-			.chain(right)
-			.map(|(x, y)| (x, y, '█'))
-			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
+		let top = (rect_min_x + 1..rect_max_x).map(|x| (x, rect_min_y));
+		let bottom = (rect_min_x + 1..rect_max_x).map(|x| (x, rect_max_y));
+		let left = (rect_min_y + 1..rect_max_y).map(|y| (rect_min_x, y));
+		let right = (rect_min_y + 1..rect_max_y).map(|y| (rect_max_x, y));
+
+		let top_left = (rect_min_x, rect_min_y, BoxDir::DOWN | BoxDir::RIGHT);
+		let top_right = (rect_max_x, rect_min_y, BoxDir::DOWN | BoxDir::LEFT);
+		let bottom_left = (rect_min_x, rect_max_y, BoxDir::UP | BoxDir::RIGHT);
+		let bottom_right = (rect_max_x, rect_max_y, BoxDir::UP | BoxDir::LEFT);
+
+		top.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT))
+			.chain(bottom.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT)))
+			.chain(left.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+			.chain(right.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+			.chain(once(top_left))
+			.chain(once(top_right))
+			.chain(once(bottom_left))
+			.chain(once(bottom_right))
+			.for_each(|(x, y, box_dir)| {
+				let current_box = BoxDir::from_char(buffer.get_point(x, y));
+				let final_box = box_dir | current_box;
+				buffer.render_point(x, y, final_box.to_char())
+			})
 	}
 
 	fn render_bounded(
@@ -103,18 +177,31 @@ impl Tool for Rectangle {
 		let rect_max_x = self.start.0.max(self.end.0);
 		let rect_min_y = self.start.1.min(self.end.1);
 		let rect_max_y = self.start.1.max(self.end.1);
-		// Top
-		let top = (rect_min_x..=rect_max_x).map(|x| (x, rect_min_y));
-		let bottom = (rect_min_x..=rect_max_x).map(|x| (x, rect_max_y));
+
+		let top = (rect_min_x + 1..rect_max_x).map(|x| (x, rect_min_y));
+		let bottom = (rect_min_x + 1..rect_max_x).map(|x| (x, rect_max_y));
 		let left = (rect_min_y + 1..rect_max_y).map(|y| (rect_min_x, y));
 		let right = (rect_min_y + 1..rect_max_y).map(|y| (rect_max_x, y));
 
-		top.chain(bottom)
-			.chain(left)
-			.chain(right)
-			.filter(|(x, y)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
-			.map(|(x, y)| (x, y, '█'))
-			.for_each(|(x, y, c)| buffer.render_point(x, y, c))
+		let top_left = (rect_min_x, rect_min_y, BoxDir::DOWN | BoxDir::RIGHT);
+		let top_right = (rect_max_x, rect_min_y, BoxDir::DOWN | BoxDir::LEFT);
+		let bottom_left = (rect_min_x, rect_max_y, BoxDir::UP | BoxDir::RIGHT);
+		let bottom_right = (rect_max_x, rect_max_y, BoxDir::UP | BoxDir::LEFT);
+
+		top.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT))
+			.chain(bottom.map(|(x, y)| (x, y, BoxDir::LEFT | BoxDir::RIGHT)))
+			.chain(left.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+			.chain(right.map(|(x, y)| (x, y, BoxDir::UP | BoxDir::DOWN)))
+			.chain(once(top_left))
+			.chain(once(top_right))
+			.chain(once(bottom_left))
+			.chain(once(bottom_right))
+			.filter(|(x, y, _)| (min_x <= *x && *x < max_x) && (min_y <= *y && *y < max_y))
+			.for_each(|(x, y, box_dir)| {
+				let current_box = BoxDir::from_char(buffer.get_point(x, y));
+				let final_box = box_dir | current_box;
+				buffer.render_point(x, y, final_box.to_char())
+			})
 	}
 
 	fn complete(&self) -> bool { self.complete }

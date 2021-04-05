@@ -27,6 +27,10 @@ impl Buffer {
 		self.grid.clear();
 	}
 
+	pub fn get_point(&self, x: usize, y: usize) -> char {
+		*self.grid.get(y).and_then(|y| y.get(x)).unwrap_or(&' ')
+	}
+
 	pub fn render_point(&mut self, x: usize, y: usize, c: char) {
 		let x = x - self.start_x;
 		let y = y - self.start_y;
